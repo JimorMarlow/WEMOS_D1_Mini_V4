@@ -1,4 +1,6 @@
 // LED - простой класс для мигания светодиодом
+#pragma once
+
 #include "GyverTimer.h"
 
 class LED

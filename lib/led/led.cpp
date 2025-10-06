@@ -11,20 +11,10 @@ LED::LED(int pin, bool state, bool inverse /*= false*/)
         write_state(state_);
 }
 
-bool LED::tick()
+bool LED::get_state()   // вернуть состояние из внутренней переменно
 {
-    if(timer_Blink.isReady())
-    {
-        toggle();
-        return true;
-    }
-    return false;
+   return state_;
 }
-
- bool LED::get_state()   // вернуть состояние из внутренней переменно
- {
-    return state_;
- }
     
 bool LED::set_state(bool state) // Установить новое состояние и записать в порт, если нужно, вернуть новое состояние
 {
@@ -77,3 +67,14 @@ void LED::reset()   // сбросить таймеры моргания, есл�
 {
     timer_Blink.reset();
 }
+
+bool LED::tick()
+{
+    if(timer_Blink.isReady())
+    {
+        toggle();
+        return true;
+    }
+    return false;
+}
+
