@@ -19,8 +19,8 @@
 LED blinkLED  (LED_BUILTIN, false, INVERSE_BUILDING_LED);
 
 #include "morse.h"
-MorseCode morse(&blinkLED);
-uint32_t MORSE_INTERVAL = 5000;
+MorseCode morse(&blinkLED, 50); // по секунде для отладки
+uint32_t MORSE_INTERVAL = 10000;
 GTimer timer_Morse(MS);               // создать миллисекундный таймер
 
 // Запуск по интервалу
@@ -30,6 +30,8 @@ uint32_t BLINK_INTERVAL = 2000;
 uint32_t BLINK_DURATION = 10;
 
 void setup() {
+    blinkLED.blink(BLINK_INTERVAL);
+
     Serial.begin(115200);
     timer_LED.setTimeout(BLINK_INTERVAL);   // настроить интервал
     
@@ -59,10 +61,9 @@ void loop()
 
     if (timer_Morse.isReady()) 
     {
-        String text = "123.123,098";
-        morse.debug_trace(text);
-        morse.send(text);
-        timer_Morse.setTimeout(MORSE_INTERVAL);
+        // String text = "ntcn 123.123,098";
+        uint32_t transmittion_duration_ms = morse.send(String(millis()));
+        timer_Morse.setTimeout(MORSE_INTERVAL + transmittion_duration_ms);
     }
-
+    morse.tick();
 }

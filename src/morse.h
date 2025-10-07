@@ -23,7 +23,7 @@ class MorseCode
     };
 
 public: 
-    MorseCode(LED* led, uint32_t dit_duration_ms = 100);   // светодиод для моргания и стандартная длительность точки
+    MorseCode(LED* led, uint32_t dit_duration_ms = 50);   // светодиод для моргания и стандартная длительность точки
     virtual ~MorseCode() = default;
 
     struct table_t
@@ -33,28 +33,28 @@ public:
     };
 
     void tick();    
-    void send(const String& text);
+    uint32_t send(const String& text);  // return: tramsmitting duration in ms 
     void reset();
 
     void debug_trace(const String& value);  
+    void debug_trace_dit(code_t dit, int on_count, int off_count);  
 
 protected:
     String message_to_code(const String& text);
-    String get_code(char ch);
+    String get_char_code(char ch);
+    uint32_t get_dit_code_duration(const String& dit_code);
 
 protected:
-    uint32_t dit_duration_ = 100;       // длительность единицы времени
+    LED*     led_           = nullptr;   // светодиод для передачи кода
+    uint32_t dit_duration_  = 100;       // длительность единицы времени
 
     bool     transmitting_  = false;     // идет процесс передачи
     bool     is_completed_  = false;     // завершено
-    String   message_       = "";        // Сообщение для передачи
-    int      symbol_pos_    = -1;        // Указатель на текущий символ
     String   dit_code_      = "";        // последовательность точек-тире для текущего символа      
     int      dit_pos_       = -1;        // указатель на текущий элемент
 
-    GTimer   timer_next_symbol_;        // миллисекундный таймер для передачи следующего символа
-    GTimer   timer_next_dit_;           // миллисекундный таймер для передачи следующего элемента 
-
+    GTimer   timer_next_;        // миллисекундный таймер для передачи следующего символа
+    
     table_t table_digits_ [10] {
         {'1', ".----"},
         {'2', "..---"},
