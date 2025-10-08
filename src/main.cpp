@@ -29,6 +29,11 @@ GTimer timer_LED(MS);               // создать миллисекундны
 uint32_t BLINK_INTERVAL = 2000;
 uint32_t BLINK_DURATION = 10;
 
+/////////////////////////////////////////
+// atl - отладка функционала
+#include "atl_test.h"
+/////////////////////////////////////////
+
 void setup() {
     blinkLED.blink(BLINK_INTERVAL);
 
@@ -43,6 +48,11 @@ void setup() {
     timer_Morse.setTimeout(MORSE_INTERVAL);
 
     Serial.println("start...");
+
+    /////////////////////////////////////////
+    // atl - отладка функционала
+    atl::test_all(Serial);
+    /////////////////////////////////////////
 }
 
 void loop() 
