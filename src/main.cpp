@@ -14,13 +14,15 @@
 #endif
 
 //////////////////////////////////////////////////////////
+#include "etl_memory.h"
 
 #include "led.h"
 LED blinkLED  (LED_BUILTIN, false, INVERSE_BUILDING_LED);
 
 #include "morse.h"
-MorseCode morse(&blinkLED, 50); // по секунде для отладки
-uint32_t MORSE_INTERVAL = 10000;
+const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
+etl::unique_ptr<MorseCode> morse;// = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+const uint32_t MORSE_INTERVAL = 10000;
 GTimer timer_Morse(MS);               // создать миллисекундный таймер
 
 // Запуск по интервалу
@@ -31,27 +33,28 @@ uint32_t BLINK_DURATION = 10;
 
 /////////////////////////////////////////
 // atl - отладка функционала
-#include "atl_test.h"
+#include "etl_test.h"
 /////////////////////////////////////////
 
 void setup() {
-    blinkLED.blink(BLINK_INTERVAL);
-
     Serial.begin(115200);
-    timer_LED.setTimeout(BLINK_INTERVAL);   // настроить интервал
     
-
+    blinkLED.off();
+    blinkLED.blink(BLINK_DURATION);
+    timer_LED.setTimeout(BLINK_INTERVAL);   // настроить интервал
+  
     // morse.debug_trace("123");
     // morse.debug_trace("123 123");
     // morse.debug_trace("123.123,098");
     // morse.debug_trace("pirat123.123 dde");
-    timer_Morse.setTimeout(MORSE_INTERVAL);
+    if(morse)
+      timer_Morse.setTimeout(MORSE_INTERVAL);
 
     Serial.println("start...");
 
     /////////////////////////////////////////
     // atl - отладка функционала
-    atl::test_all(Serial);
+    etl::test_all(Serial);
     /////////////////////////////////////////
 }
 
@@ -69,11 +72,15 @@ void loop()
     //   timer_LED.setTimeout(BLINK_INTERVAL);
     // }
 
-    if (timer_Morse.isReady()) 
+    if(morse) 
     {
-        // String text = "ntcn 123.123,098";
-        uint32_t transmittion_duration_ms = morse.send(String(millis()));
-        timer_Morse.setTimeout(MORSE_INTERVAL + transmittion_duration_ms);
+      morse->tick();
+      if (timer_Morse.isReady()) 
+      {
+          // String text = "ntcn 123.123,098";
+          String text = String(millis());
+          uint32_t transmittion_duration_ms = morse->send(text);
+          timer_Morse.setTimeout(MORSE_INTERVAL + transmittion_duration_ms);
+      }
     }
-    morse.tick();
 }
