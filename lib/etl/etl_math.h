@@ -7,7 +7,7 @@ namespace etl
 class math {
 private:
 #ifdef ESP32
-  static constexpr double EPSILON = 1e-6;
+  static constexpr double EPSILON = 1e-5;
 #else
   // для ESP8266 стабильно работает только с 1e-5, 1e-6 уже начинает пропускать, из-за нехватки точности double (которая там фактически float)
   static constexpr double EPSILON = 1e-5;

@@ -19,7 +19,7 @@ class MorseCode
         DOT = '.',
         DASH = '-',
         PAUSE = ' ',
-        WDBR = '/'
+        WDBR = '|'
     };
 
 public: 

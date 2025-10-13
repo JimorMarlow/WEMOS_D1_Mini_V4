@@ -5,27 +5,32 @@
 // Platform dependent settings
 
 #ifdef ESP8266
+   #pragma message("Компилируется под WEMOS D1 MINI")
   bool INVERSE_BUILDING_LED = true;
+  const int LED_MORSE = LED_BUILDIN;
   // WEMOS D1 Mini V4  встроенный синий светодиод, подключённый к пину D4 (GPIO2)
 // #define LED_BUILTIN D4
-
+#elif ESP32
+  // Код только для ESP32-C3
+  #pragma message("Компилируется под ESP32-C3 mini")
+  bool INVERSE_BUILDING_LED = true;
+  const int LED_MORSE = 8; // LED_BUILDIN
 #else
   // Код для других плат
   bool INVERSE_BUILDING_LED = false; 
-  // ESP32-C3-mini  встроенный синий светодиод, подключённый к пину 8 (GPIO8)
-  // #define LED_BUILTIN 8
+  const int LED_MORSE = LED_BUILDIN;
 #endif
 
 //////////////////////////////////////////////////////////
 #include "etl_memory.h"
 
 #include "led.h"
-LED blinkLED  (LED_BUILTIN, false, INVERSE_BUILDING_LED);
+LED blinkLED  (LED_MORSE, false, INVERSE_BUILDING_LED);
 
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
 etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
-const uint32_t MORSE_INTERVAL = 10000;
+const uint32_t MORSE_INTERVAL = 5000;
 GTimer timer_Morse(MS);               // создать миллисекундный таймер
 
 // Запуск по интервалу
@@ -41,6 +46,9 @@ uint32_t BLINK_DURATION = 10;
 
 void setup() {
     Serial.begin(115200);
+    #ifdef ESP32
+    delay(1000);  // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
+    #endif
     
     blinkLED.off();
     blinkLED.blink(BLINK_DURATION);
