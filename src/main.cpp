@@ -7,18 +7,18 @@
 #ifdef ESP8266
    #pragma message("Компилируется под WEMOS D1 MINI")
   bool INVERSE_BUILDING_LED = true;
-  const int LED_MORSE = LED_BUILDIN;
+  const int LED_MORSE = LED_BUILTIN;
   // WEMOS D1 Mini V4  встроенный синий светодиод, подключённый к пину D4 (GPIO2)
 // #define LED_BUILTIN D4
 #elif ESP32
   // Код только для ESP32-C3
   #pragma message("Компилируется под ESP32-C3 mini")
   bool INVERSE_BUILDING_LED = true;
-  const int LED_MORSE = 8; // LED_BUILDIN
+  const int LED_MORSE = LED_BUILTIN; //8; // LED_BUILTIN
 #else
   // Код для других плат
   bool INVERSE_BUILDING_LED = false; 
-  const int LED_MORSE = LED_BUILDIN;
+  const int LED_MORSE = LED_BUILTIN;
 #endif
 
 //////////////////////////////////////////////////////////
