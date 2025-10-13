@@ -1,16 +1,19 @@
 #include <Arduino.h>
 
-// WEMOS D1 Mini V4  встроенный синий светодиод, подключённый к пину D4 (GPIO2)
-// #define LED_BUILTIN D4
 
 //////////////////////////////////////////////////////////
 // Platform dependent settings
 
 #ifdef ESP8266
   bool INVERSE_BUILDING_LED = true;
+  // WEMOS D1 Mini V4  встроенный синий светодиод, подключённый к пину D4 (GPIO2)
+// #define LED_BUILTIN D4
+
 #else
   // Код для других плат
   bool INVERSE_BUILDING_LED = false; 
+  // ESP32-C3-mini  встроенный синий светодиод, подключённый к пину 8 (GPIO8)
+  // #define LED_BUILTIN 8
 #endif
 
 //////////////////////////////////////////////////////////
@@ -21,7 +24,7 @@ LED blinkLED  (LED_BUILTIN, false, INVERSE_BUILDING_LED);
 
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
-etl::unique_ptr<MorseCode> morse;// = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
 const uint32_t MORSE_INTERVAL = 10000;
 GTimer timer_Morse(MS);               // создать миллисекундный таймер
 
