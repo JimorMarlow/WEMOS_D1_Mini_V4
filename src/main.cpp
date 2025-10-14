@@ -29,7 +29,7 @@ LED blinkLED  (LED_MORSE, false, INVERSE_BUILDING_LED);
 
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
-etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+etl::unique_ptr<MorseCode> morse;// = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
 const uint32_t MORSE_INTERVAL = 5000;
 GTimer timer_Morse(MS);               // создать миллисекундный таймер
 
@@ -58,8 +58,8 @@ void setup() {
     // morse.debug_trace("123 123");
     // morse.debug_trace("123.123,098");
     // morse.debug_trace("pirat123.123 dde");
-    if(morse)
-      timer_Morse.setTimeout(MORSE_INTERVAL);
+   if(morse)
+     timer_Morse.setTimeout(MORSE_INTERVAL);
 
     Serial.println("start...");
 

@@ -70,6 +70,7 @@ String MorseCode::message_to_code(const String& text)
                     else {
                         codes += code_t::WDBR;
                     }
+                    break;
                 }
                 else
                 {

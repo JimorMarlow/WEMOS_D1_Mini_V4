@@ -8,9 +8,9 @@ cpp
 void setup() {
     Serial.begin(9600);
     
-    Serial.println("=== DynamicQueue Iterator Test ===");
+    Serial.println("=== queue Iterator Test ===");
     
-    DynamicQueue<int, 5> queue;
+    queue<int, 5> queue;
     
     // Заполняем очередь
     for (int i = 1; i <= 5; i++) {
@@ -32,7 +32,7 @@ void setup() {
     
     // Const итератор (только для чтения)
     Serial.println("Const iteration:");
-    const DynamicQueue<int, 5>& const_queue = queue;
+    const queue<int, 5>& const_queue = queue;
     for (const auto& item : const_queue) {
         Serial.println(item);
     }
@@ -50,9 +50,10 @@ void setup() {
 void loop() {
 }
 */
+namespace etl {
 
 template<typename T, size_t MAX_SIZE = 16>
-class DynamicQueue {
+class queue {
 private:
     T data[MAX_SIZE];
     size_t front_index = 0;
@@ -126,20 +127,20 @@ public:
     // Итератор для range-based for loop
     class Iterator {
     private:
-        DynamicQueue* queue;
+        queue* queue_ = nullptr;
         size_t position;
         size_t visited;
         
     public:
-        Iterator(DynamicQueue* q, size_t pos, size_t vis = 0) 
-            : queue(q), position(pos), visited(vis) {}
+        Iterator(queue* q, size_t pos, size_t vis = 0) 
+            : queue_(q), position(pos), visited(vis) {}
         
         T& operator*() {
-            return queue->data[position];
+            return queue_->data[position];
         }
         
         Iterator& operator++() {
-            position = (position + 1) % queue->capacity();
+            position = (position + 1) % queue_->capacity();
             visited++;
             return *this;
         }
@@ -152,20 +153,20 @@ public:
     // Константный итератор
     class ConstIterator {
     private:
-        const DynamicQueue* queue;
+        const queue* queue_ = nullptr;
         size_t position;
         size_t visited;
         
     public:
-        ConstIterator(const DynamicQueue* q, size_t pos, size_t vis = 0) 
-            : queue(q), position(pos), visited(vis) {}
+        ConstIterator(const queue* q, size_t pos, size_t vis = 0) 
+            : queue_(q), position(pos), visited(vis) {}
         
         const T& operator*() const {
-            return queue->data[position];
+            return queue_->data[position];
         }
         
         ConstIterator& operator++() {
-            position = (position + 1) % queue->capacity();
+            position = (position + 1) % queue_->capacity();
             visited++;
             return *this;
         }
@@ -198,3 +199,5 @@ public:
         return ConstIterator(this, back_index, count);
     }
 };
+
+} //namespace etl

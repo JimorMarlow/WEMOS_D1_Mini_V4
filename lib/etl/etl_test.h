@@ -6,5 +6,14 @@
 namespace etl
 {
     bool test_all(Stream& trace);
-    String test_optional(Stream& trace);
+    void test_result(Stream& trace, const String& title, const String& result);
+
+    // тесты модулей
+    String test_empty();
+    String test_optional();
+    String test_unique();
+    String test_queue();
+
+    // проверка алгоритмов 
+    void test_average_filter(Stream& trace);
 }

@@ -17,16 +17,22 @@ https://sl.aliexpress.ru/p?key=EXsWVSI
 - Morse - учебный класс для моргания светодиодам чисел азбукой Морзе без блокирования основного цикла на таймере AlexGyver. 
 
 # Добавил поддержку платы ESP32 C3 Super Mini
+
+- ESP32C3 PRO MINI development board onboard ESP32-C3FH4 chip module WiFi Bluetooth development board
+- https://ali.click/2n96l7
+- Внешний вид <br><img src="docs\ESP32C3 PRO MINI.png" alt="ESP32C3 PRO MINI" width="500">
+- Pinout <br><img src="docs\ESP32C3 PRO MINI - pinout.png" alt="ESP32C3 PRO MINI" width="500">
+
 Вывод в терминал заработал только после этой конфигурации:
 
-[env:esp32c3]
-board = esp32-c3-devkitm-1
-platform = espressif32
-framework = arduino
-monitor_speed = 115200
-build_flags =    
-	-D ARDUINO_USB_MODE=1
-	-D ARDUINO_USB_CDC_ON_BOOT=1 
+    [env:esp32c3]
+    board = esp32-c3-devkitm-1
+    platform = espressif32
+    framework = arduino
+    monitor_speed = 115200
+    build_flags =    
+        -D ARDUINO_USB_MODE=1
+	    -D ARDUINO_USB_CDC_ON_BOOT=1 
 
 ##### Чтобы вывод в термиал заработал сразу, нужно сдетаь паузу на 1с
 	Serial.begin(115200);

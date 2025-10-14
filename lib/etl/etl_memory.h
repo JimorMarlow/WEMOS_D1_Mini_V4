@@ -78,6 +78,10 @@ public:
     explicit operator bool() const noexcept {
         return ptr != nullptr;
     }
+
+    bool empty() const noexcept {
+        return ptr == nullptr;
+    }
     
     // Сравнения
     bool operator==(std::nullptr_t) const noexcept {
@@ -143,6 +147,10 @@ public:
     
     explicit operator bool() const noexcept {
         return ptr != nullptr;
+    }
+
+    bool empty() const noexcept {
+        return ptr == nullptr;
     }
     
     void swap(unique_ptr& other) noexcept {
