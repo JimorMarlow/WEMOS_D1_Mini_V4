@@ -116,7 +116,7 @@ namespace etl
     {
     private:
         etl::queue<T, MAX_SIZE> _values;
-        T _summ = static_cast<T>(0);        
+        T _summ = T{0};//static_cast<T>{0};        
     public:
         T proccess(const T& value)
         {
@@ -136,12 +136,49 @@ namespace etl
         }
     };
 
+    struct th_t {
+        float temperature;
+        float humidity;
+
+        // Оператор сложения (создает новый объект)
+        th_t operator+(const th_t& rhs) const {
+            return th_t{temperature + rhs.temperature, humidity + rhs.humidity};
+        }
+
+        // Оператор деления на число (создает новый объект)
+        th_t operator/(float x) const {
+            return th_t{temperature / x, humidity / x};
+        }
+
+        th_t operator/(int x) const {
+            return th_t{temperature / x, humidity / x};
+        }
+
+        th_t operator/(size_t x) const {
+            return th_t{temperature / x, humidity / x};
+        }
+
+        // Оператор += (поэлементное прибавление к текущему объекту)
+        th_t& operator+=(const th_t& rhs) {
+            temperature += rhs.temperature;
+            humidity += rhs.humidity;
+            return *this;
+        }
+
+        th_t& operator-=(const th_t& rhs) {
+            temperature -= rhs.temperature;
+            humidity -= rhs.humidity;
+            return *this;
+        }
+    };
+
+
     void test_average_filter(Stream& trace)
     {
         trace.println();
         trace.println("i\tfilter_average<int, 5>");
         filter_average<float, 5> avg5_int;
-        for(float i = 0; i < 25; i += 0.1)
+        for(float i = 0; i < 25; i += 1.0)
         {
             if(math::equals(i, 15.0)) { // нифига не работает сравнение???
                 avg5_int.reset();
@@ -150,6 +187,19 @@ namespace etl
             float avg = avg5_int.proccess(i);
             trace.print(i); trace.print("\t");
             trace.println(avg);
+        }
+
+        trace.println();
+        trace.println("i\tfilter_average<th_t, 5>");
+        filter_average<th_t, 5> TH;
+        th_t base{24.0f, 50};
+        for(int i = 0; i < 20; ++i)
+        {
+            base = base + th_t{float(sin(i) * 2.0), 50};
+            th_t avg = TH.proccess(base);
+            trace.print(i); trace.print("\t");
+            trace.print(avg.temperature); trace.print("C\t");
+            trace.print(avg.humidity); trace.println("%");
         }
     }
 
