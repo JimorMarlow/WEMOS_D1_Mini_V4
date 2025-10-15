@@ -3,6 +3,8 @@
 #include "etl_math.h"
 #include "etl_memory.h"
 #include "etl_queue.h"
+#include "filter_moving_average.h"
+#include "filter_exponential.h"
 
 namespace etl 
 {
@@ -111,30 +113,30 @@ namespace etl
     }
 
 
-    template<typename T, size_t MAX_SIZE = 5>
-    class filter_average
-    {
-    private:
-        etl::queue<T, MAX_SIZE> _values;
-        T _summ = T{0};//static_cast<T>{0};        
-    public:
-        T proccess(const T& value)
-        {
-            if(_values.full()) {
-                _summ -= _values.front();
-                _values.pop();
-            }
-            if(_values.push(value)) {
-                _summ += value;
-            }
-            return _summ / _values.size();
-        }
+    // template<typename T, size_t MAX_SIZE = 5>
+    // class filter_average
+    // {
+    // private:
+    //     etl::queue<T, MAX_SIZE> _values;
+    //     T _summ = T{0};//static_cast<T>{0};        
+    // public:
+    //     T proccess(const T& value)
+    //     {
+    //         if(_values.full()) {
+    //             _summ -= _values.front();
+    //             _values.pop();
+    //         }
+    //         if(_values.push(value)) {
+    //             _summ += value;
+    //         }
+    //         return _summ / _values.size();
+    //     }
 
-        void reset() {
-            _values.clear();
-            _summ = static_cast<T>(0);        
-        }
-    };
+    //     void reset() {
+    //         _values.clear();
+    //         _summ = static_cast<T>(0);        
+    //     }
+    // };
 
     struct th_t {
         float temperature;
@@ -175,31 +177,57 @@ namespace etl
 
     void test_average_filter(Stream& trace)
     {
+        ///////////////////////////////////////////////
+        // скользящее окно на 5 целых чисел
         trace.println();
         trace.println("i\tfilter_average<int, 5>");
-        filter_average<float, 5> avg5_int;
+        filter_moving_average<int, 5> avg5_int;
         for(float i = 0; i < 25; i += 1.0)
         {
-            if(math::equals(i, 15.0)) { // нифига не работает сравнение???
+            if(i == 15) { 
                 avg5_int.reset();
                 trace.println("reset");
             } 
-            float avg = avg5_int.proccess(i);
+            int avg = avg5_int.update(i);
             trace.print(i); trace.print("\t");
             trace.println(avg);
         }
 
+        ///////////////////////////////////////////////
+        // скользящее окно на 10 адщфе
         trace.println();
-        trace.println("i\tfilter_average<th_t, 5>");
-        filter_average<th_t, 5> TH;
-        th_t base{24.0f, 50};
-        for(int i = 0; i < 20; ++i)
+        trace.println("i\tfilter_average<float, 10>");
+        filter_moving_average<float, 10> avg5_float;
+        for(float i = 0; i < 25; i += 1.0)
         {
-            base = base + th_t{float(sin(i) * 2.0), 50};
-            th_t avg = TH.proccess(base);
+            if(math::equals(i, 15.0)) { // нифига не работает сравнение???
+                avg5_float.reset();
+                trace.println("reset");
+            } 
+            float avg = avg5_float.update(i);
             trace.print(i); trace.print("\t");
-            trace.print(avg.temperature); trace.print("C\t");
-            trace.print(avg.humidity); trace.println("%");
+            trace.println(avg);
+        }
+
+        // Сложная структура для датчика температуры и влажности
+        trace.println();
+        trace.println("i\tT\tTavg\tH\tHavg\tHexp");
+        filter_moving_average<th_t, 10> TH;
+        filter_exponential<float> humidity(0.3); // alpha = 0.1, 1.0 - без изменений
+        th_t base{24.0f, 50};
+        for(int i = 0; i < 200; ++i)
+        {
+            th_t value = base + th_t{float(sin(i) * 2.0) + float(sin(i/100.0) * 10.0), float(sin(i) * 10.0)};
+            th_t avg = TH.update(value);
+            //float exp_hum = humidity.update(value.humidity);
+            float exp_hum = humidity.update(value.temperature);
+            
+            trace.print(i); trace.print(";\t");
+            trace.print(value.temperature); trace.print(";\t");
+            trace.print(avg.temperature); trace.print(";\t");
+            trace.print(value.humidity); trace.print(";\t");            
+            trace.print(avg.humidity); trace.print(";\t"); 
+            trace.print(exp_hum); trace.println(";\t");
         }
     }
 
