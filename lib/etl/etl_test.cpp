@@ -233,11 +233,11 @@ namespace etl
 
         // Сложная структура для датчика температуры и влажности
         trace.println();
-        trace.println("i;\tTraw;\tTm3;\tTavg;\tTexp;\tHraw;\tHm3;\tHavg;\tHexp;\t");
+        trace.println("i;\tTraw;\tTm3;\tTavg;\tTexp;\tHraw;\tHm5;\tHavg;\tHexp;\t");
         
         // медианный фильтр на входе для удаления выбросов
         filter::median3<float> temperature_noice_remover; 
-        filter::median3<float> humidity_noice_remover; 
+        filter::median5<float> humidity_noice_remover; 
         
         // Скользящее среднее
         filter::moving_average<th_t, 10> TH;
