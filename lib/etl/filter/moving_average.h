@@ -2,11 +2,14 @@
 
 #pragma once
 #include "Arduino.h"
-#include "filter_base.h"
+#include "filter/base.h"
 #include "etl_queue.h"
-
+namespace etl
+{
+namespace filter
+{
 template<typename T, size_t MAX_SIZE = 5>
-class filter_moving_average : public filter_base<T>
+class moving_average : public filter::base<T>
 {
 private:
     etl::queue<T, MAX_SIZE> _values;
@@ -30,3 +33,6 @@ public:
         _summ = T{0}; //static_cast<T>(0);        
     }
 };
+
+}// namespace filter
+}// namespace etl

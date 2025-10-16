@@ -12,11 +12,15 @@
 // α ≈ 0.7 - слабое сглаживание, быстрая реакция на изменения
 
 #include "Arduino.h"
-#include "filter_base.h"
+#include "filter/base.h"
 #include "etl_optional.h"
 
+namespace etl
+{
+namespace filter
+{
 template<typename T>
-class filter_exponential : public filter_base<T>
+class exponential : public base<T>
 {
 private:
     T alpha = T{0};
@@ -24,7 +28,7 @@ private:
     
 public:
     
-    filter_exponential(const T& smoothing_factor) 
+    exponential(const T& smoothing_factor) 
         : alpha(constrain(smoothing_factor, 0.001, 1.0)) // Ограничиваем α в диапазоне (0, 1]        
         {}
     virtual T update(const T& value) override
@@ -45,3 +49,6 @@ public:
          filtered_value.reset();
     }
 };
+
+}// namespace filter
+}// namespace etl

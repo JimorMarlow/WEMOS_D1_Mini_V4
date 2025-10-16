@@ -50,6 +50,8 @@ void setup() {
 void loop() {
 }
 */
+#include "etl_utility.h"
+
 namespace etl {
 
 template<typename T, size_t MAX_SIZE = 16>
@@ -82,6 +84,18 @@ public:
         front_index = (front_index + 1) % MAX_SIZE;
         count--;
         return true;
+    }
+
+    // Удаление из начала с возвратом значения, которое было вытолкнуто
+    etl::optional<T> pop_front()
+    {
+        etl::optional<T> front_value;
+        if (!empty()) {
+            front_value = front();
+            front_index = (front_index + 1) % MAX_SIZE;
+            count--;
+        }
+        return front_value;
     }
     
     // Просмотр первого элемента
@@ -122,6 +136,42 @@ public:
     // Очистка
     void clear() {
         front_index = back_index = count = 0;
+    }
+
+    // Доступ к элементу по индексу от начала (0 = front, 1 = следующий, и т.д.)
+    T& at(size_t index) {
+        if (index >= count) {
+            // Обработка выхода за границы - можно бросить исключение или вернуть ссылку на static
+            static T dummy;
+            return dummy;
+        }
+        return data[(front_index + index) % MAX_SIZE];
+    }
+    
+    const T& at(size_t index) const {
+        if (index >= count) {
+            static T dummy;
+            return dummy;
+        }
+        return data[(front_index + index) % MAX_SIZE];
+    }
+    
+    // Оператор [] для удобства (аналогично at)
+    T& operator[](size_t index) {
+        return at(index);
+    }
+    
+    const T& operator[](size_t index) const {
+        return at(index);
+    }
+    
+    // Безопасная версия с проверкой границ (возвращает bool вместо ссылки)
+    etl::optional<T> get_at(size_t index) const {
+        etl::optional<T> value; 
+        if (index < count) {
+            value = data[(front_index + index) % MAX_SIZE];
+        }
+        return etl::move(value);
     }
     
     // Итератор для range-based for loop

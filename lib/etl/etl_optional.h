@@ -42,7 +42,7 @@ namespace etl
         
         // Копирующий конструктор
         optional(const optional& other) {
-            if (other.has_value) {
+            if (other.has_value()) {
                 construct(*other);
             }
         }
