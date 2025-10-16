@@ -3,10 +3,13 @@
 #include "etl_math.h"
 #include "etl_memory.h"
 #include "etl_queue.h"
+#include "etl_vector.h"
+#include "etl_utility.h"
 #include "filter/moving_average.h"
 #include "filter/exponential.h"
 #include "filter/median.h"
-#include "etl_utility.h"
+#include "sensor/temperature.h"
+#include "tools/stop_watch.h"
 
 namespace etl 
 {
@@ -23,11 +26,14 @@ namespace etl
         test_result(trace, "test_optional", test_optional());
         test_result(trace, "test_unique", test_unique());
         test_result(trace, "test_queue", test_queue());
+        test_result(trace, "test_vector", test_vector());
 
         test_result(trace, "test_empty", test_empty());
         
         trace.println("--------------------------------");
-
+        int memory_leaks = int(ESP.getFreeHeap()) - mem_free;
+        trace.print("MEMORY LEAKS: "); trace.print(memory_leaks); trace.println(memory_leaks == 0 ? "\tOK" : "\tFAILED");
+        trace.println("--------------------------------");
         test_average_filter(trace);
 
         return true;
@@ -147,41 +153,55 @@ namespace etl
         return "";
     }
 
-    struct th_t {
-        float temperature;
-        float humidity;
+    String test_vector()
+    {
+        etl::vector<uint8_t> bytes;
+        TEST_EQUAL(bytes.empty(), true, "vector empty");
 
-        // Оператор сложения (создает новый объект)
-        th_t operator+(const th_t& rhs) const {
-            return th_t{temperature + rhs.temperature, humidity + rhs.humidity};
-        }
+        for(uint8_t i = 1; i <= 5; ++i ) bytes.push_back(i);
+        TEST_EQUAL(bytes.empty(), false, "vector not empty");
+        TEST_EQUAL(bytes.size(), 5, "vector size() 5");
+        TEST_EQUAL(bytes.at(0), 1, "1: vector at(0) 1");
+        TEST_EQUAL(bytes.at(1), 2, "1: vector at(1) 2");
+        TEST_EQUAL(bytes.at(2), 3, "1: vector at(2) 3");
+        TEST_EQUAL(bytes.at(3), 4, "1: vector at(3) 4");
+        TEST_EQUAL(bytes.at(4), 5, "1: vector at(4) 5");
 
-        // Оператор деления на число (создает новый объект)
-        th_t operator/(float x) const {
-            return th_t{temperature / x, humidity / x};
-        }
+        bytes.clear();
+        TEST_EQUAL(bytes.empty(), true, "2: vector empty");
+        bytes.resize(20, 0xFF);
+        TEST_EQUAL(bytes.size(), 20, "2: vector size() 20");
+        TEST_EQUAL(bytes[10], 0xFF, "2: vector [10] 0xFF");
+        bytes.reserve(30);
+        TEST_EQUAL(bytes.capacity(), 30, "3: vector capacity() 30");
+        TEST_EQUAL(bytes.size(), 20, "3: vector size() 20");
+        TEST_EQUAL(bytes[10], 0xFF, "3: vector [10] 0xFF");        
 
-        th_t operator/(int x) const {
-            return th_t{temperature / x, humidity / x};
-        }
+        auto bytes_copy = bytes;
+        TEST_EQUAL(bytes_copy.capacity(), bytes_copy.size(), "4: vector copy capacity() equl original size()");
+        TEST_EQUAL(bytes_copy.size(), 20, "4: vector copy size() 20");
+        TEST_EQUAL(bytes_copy[10], 0xFF, "4: vector copy [10] 0xFF");
+        size_t capacity4 = bytes_copy.capacity();
+        bytes_copy.push_back(0xAD);        
+        TEST_EQUAL(bytes_copy.capacity(), capacity4 * 2, "5: vector copy capacity() increased x2");
+        TEST_EQUAL(bytes_copy.size(), 21, "5: vector copy size() 20");
+        TEST_EQUAL(bytes_copy.back(), 0xAD, "5: vector copy back() 0xAD");
 
-        th_t operator/(size_t x) const {
-            return th_t{temperature / x, humidity / x};
+        etl::vector<float> fv;
+        float sum1 = 0;
+        for(int i=0; i < 100; ++i) {
+            float value = i * 2.0;
+            fv.push_back(value);
+            sum1 += value;
         }
+        float sum2 = 0;
+        for(const auto& value : fv) {
+            sum2 += value;     
+        }
+        TEST_EQUAL(math::equals(sum1, sum2), true, "vector<float> assign and check summ");
 
-        // Оператор += (поэлементное прибавление к текущему объекту)
-        th_t& operator+=(const th_t& rhs) {
-            temperature += rhs.temperature;
-            humidity += rhs.humidity;
-            return *this;
-        }
-
-        th_t& operator-=(const th_t& rhs) {
-            temperature -= rhs.temperature;
-            humidity -= rhs.humidity;
-            return *this;
-        }
-    };
+        return "";  // no errors
+    }
 
     // Функция для генерации редких выбросов
     float add_rare_noise(float base_value, int iteration) {
@@ -230,8 +250,8 @@ namespace etl
             trace.print(i); trace.print("\t");
             trace.println(avg);
         }
-
-        // Сложная структура для датчика температуры и влажности
+        
+        // Использование сложная структура для датчика температуры и влажности в бегущем среднем фильтра
         trace.println();
         trace.println("i;\tTraw;\tTm3;\tTavg;\tTexp;\tHraw;\tHm5;\tHavg;\tHexp;\t");
         
@@ -240,20 +260,42 @@ namespace etl
         filter::median5<float> humidity_noice_remover; 
         
         // Скользящее среднее
-        filter::moving_average<th_t, 10> TH;
+        filter::moving_average<sensor::data::th_t, 5> TH;
         // Экспоненциальный 
         filter::exponential<float> temperature_exp(0.3); // alpha = 0.1, 1.0 - без изменений
         filter::exponential<float> humidity_exp(0.5); // alpha = 0.1, 1.0 - без изменений
-        th_t base{24.0f, 50};
+        sensor::data::th_t base{24.0f, 50};
+
+        // Измерение скорости выполнения фильров и использование вектора для запоминания данных
+        struct stats_t {
+            etl::tools::stop_watch md3;
+            etl::tools::stop_watch md5;
+            etl::tools::stop_watch avg;
+            etl::tools::stop_watch exp;
+        } stats;        
+
         for(int i = 0; i < 200; ++i)
         {
-            th_t raw = base + th_t{float(sin(i) * 2.0) + float(sin(i/50.0) * 30.0), float(sin(i) * 20.0)};
+            sensor::data::th_t raw = base + sensor::data::th_t{float(sin(i) * 2.0) + float(sin(i/50.0) * 30.0), float(sin(i) * 20.0)};
             raw.temperature = add_rare_noise(raw.temperature, i); // редкие выбросы для проверки медианных фильтров
             raw.humidity = add_rare_noise(raw.humidity, i); // редкие выбросы для проверки медианных фильтров
             //th_t median {raw};    // чтобы можно было убрать сглаживающий медианный фильтр
-            th_t median {temperature_noice_remover.update(raw.temperature), humidity_noice_remover.update(raw.humidity)};
-            th_t avg = TH.update(median);
-            th_t exp {humidity_exp.update(median.temperature), temperature_exp.update(median.humidity)};
+            
+            stats.md3.start();
+            float temperature_md3 = temperature_noice_remover.update(raw.temperature);
+            stats.md3.stop();
+            stats.md5.start();
+            float humidity_md5 = humidity_noice_remover.update(raw.humidity);
+            stats.md5.stop();
+            sensor::data::th_t median {temperature_md3, humidity_md5};
+            
+            stats.avg.start();
+            sensor::data::th_t avg = TH.update(median);
+            stats.avg.stop();
+
+            stats.exp.start();
+            sensor::data::th_t exp {humidity_exp.update(median.temperature), temperature_exp.update(median.humidity)};
+            stats.exp.stop();
             
             trace.print(i); trace.print(";\t");
             trace.print(raw.temperature); trace.print(";\t");
@@ -265,6 +307,27 @@ namespace etl
             trace.print(avg.humidity); trace.print(";\t"); 
             trace.print(exp.humidity); trace.println(";\t");
         }
+
+        // Статистика выполнения фильтров
+        trace.println();
+        trace.print("TIME;\tus;\t"); 
+        trace.print(stats.md3.get_averate_time()); // Tm3
+        trace.print(";\t");
+        trace.print(stats.avg.get_averate_time()); // Tavg
+        trace.print(";\t");
+        trace.print(stats.exp.get_averate_time() / 2); // Texp
+        trace.print(";\tus;\t");
+        trace.print(stats.md5.get_averate_time()); // Hm5
+        trace.print(";\t");
+        trace.print(stats.avg.get_averate_time()); // Havg
+        trace.print(";\t");
+        trace.print(stats.exp.get_averate_time() / 2); // Hexp; 
+        trace.print("\t");
+        trace.println();
+
+        // Результаты вывода для WEMOS D1 MINI
+        // TIME;   us;     4;      17;     4;      us;     14;     17;     4
+        // median3 = 4us  vs median5 = 14u, md3 почти в 5 раз быстрее
     }
 
 }

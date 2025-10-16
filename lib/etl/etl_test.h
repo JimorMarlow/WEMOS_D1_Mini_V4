@@ -13,6 +13,7 @@ namespace etl
     String test_optional();
     String test_unique();
     String test_queue();
+    String test_vector();
 
     // проверка алгоритмов 
     void test_average_filter(Stream& trace);
