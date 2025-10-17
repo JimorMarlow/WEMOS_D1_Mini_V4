@@ -88,6 +88,44 @@ public:
     vector(size_t count, const T& value) {
         resize(count, value);
     }
+
+    // Конструктор из initializer_list
+    vector(std::initializer_list<T> init) {
+        if (init.size() > 0) {
+            if (reserve_more(init.size())) {
+                size_t i = 0;
+                for (const auto& item : init) {
+                    data_[i++] = item;
+                }
+                size_ = init.size();
+            }
+        }
+    }
+
+    // Конструктор из статического массива
+    template<size_t N>
+    vector(const T (&arr)[N]) {
+        if (N > 0) {
+            if (reserve_more(N)) {
+                for (size_t i = 0; i < N; i++) {
+                    data_[i] = arr[i];
+                }
+                size_ = N;
+            }
+        }
+    }
+
+    // Конструктор из указателя и размера
+    vector(const T* arr, size_t size) {
+        if (arr != nullptr && size > 0) {
+            if (reserve_more(size)) {
+                for (size_t i = 0; i < size; i++) {
+                    data_[i] = arr[i];
+                }
+                size_ = size;
+            }
+        }
+    }
     
     // Копирующий конструктор
     vector(const vector& other) {
@@ -110,6 +148,36 @@ public:
                     data_[i] = other.data_[i];
                 }
                 size_ = other.size_;
+            }
+        }
+        return *this;
+    }
+
+    // Оператор присваивания из initializer_list
+    vector& operator=(std::initializer_list<T> init) {
+        clear();
+        if (init.size() > 0) {
+            if (reserve_more(init.size())) {
+                size_t i = 0;
+                for (const auto& item : init) {
+                    data_[i++] = item;
+                }
+                size_ = init.size();
+            }
+        }
+        return *this;
+    }
+    
+    // Оператор присваивания из статического массива
+    template<size_t N>
+    vector& operator=(const T (&arr)[N]) {
+        clear();
+        if (N > 0) {
+            if (reserve_more(N)) {
+                for (size_t i = 0; i < N; i++) {
+                    data_[i] = arr[i];
+                }
+                size_ = N;
             }
         }
         return *this;

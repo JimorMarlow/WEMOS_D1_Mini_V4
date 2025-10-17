@@ -17,8 +17,12 @@
 #elif BOARD_ESP32_C3_SUPER_MINI // #elif ESP32
   // Код только для ESP32-C3
   #pragma message("Компилируется под ESP32-C3 super mini")
+  // НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
+  #undef LED_BUILTIN
+  #define LED_BUILTIN 8
+  
   bool INVERSE_BUILTING_LED = true;
-  const int LED_MORSE = 8; //LED_BUILTIN; НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
+  const int LED_MORSE = LED_BUILTIN; //8; //LED_BUILTIN; НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
   const int SERIAL_INIT_DELAY = 1000; // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
 #else
   // Код для других плат
