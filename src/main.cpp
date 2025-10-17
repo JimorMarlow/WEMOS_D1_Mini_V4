@@ -1,26 +1,7 @@
 #include <Arduino.h>
 
-
-//////////////////////////////////////////////////////////
-// Platform dependent settings
-
-#ifdef ESP8266
-   #pragma message("Компилируется под WEMOS D1 MINI")
-  bool INVERSE_BUILDING_LED = true;
-  const int LED_MORSE = LED_BUILTIN;
-  // WEMOS D1 Mini V4  встроенный синий светодиод, подключённый к пину D4 (GPIO2)
-// #define LED_BUILTIN D4
-#elif ESP32
-  // Код только для ESP32-C3
-  #pragma message("Компилируется под ESP32-C3 mini")
-  bool INVERSE_BUILDING_LED = true;
-  const int LED_MORSE = 8; //LED_BUILTIN; НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
-#else
-  // Код для других плат
-  bool INVERSE_BUILDING_LED = false; 
-  const int LED_MORSE = LED_BUILTIN;
-#endif
-
+// Вся конфигурация и платформозависимые настройки в pinout.h
+#include "pinout.h"
 //////////////////////////////////////////////////////////
 #include "etl_memory.h"
 
@@ -43,6 +24,7 @@ uint32_t BLINK_DURATION = 10;
 // atl - отладка функционала
 #include "etl_test.h"
 /////////////////////////////////////////
+#include "esp_wifi.h"
 
 void setup() {
     Serial.begin(115200);
@@ -67,11 +49,21 @@ void setup() {
     // atl - отладка функционала
   //  etl::test_all(Serial);
     /////////////////////////////////////////
+
+    Serial.println("-----------WIFI----------");
+    Serial.print("SSID: ");  Serial.println(WIFI_SSID);
+    Serial.print("PASS: ");  Serial.println(WIFI_PASS);
+    Serial.print("MODE: ");  Serial.println(MODE);
+    
+    // Подключение к Wi-Fi не требуется для получения MAC-адреса.
+    // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
+    Serial.print("MAC : ");  Serial.println(WiFi.macAddress());
+    Serial.println("-------------------------");
 }
 
 void loop() 
 {
-    // blinkLED.tick();
+    // blinkLED.tick(); // если не используется morse нужно вызывать тут для обновления внутреннего таймера
     // if(blinkLED.tick())
     // {
     //   Serial.print(millis()); Serial.print(": "); Serial.println("off");

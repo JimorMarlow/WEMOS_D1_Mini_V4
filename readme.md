@@ -34,12 +34,47 @@ https://sl.aliexpress.ru/p?key=EXsWVSI
         -D ARDUINO_USB_MODE=1
 	    -D ARDUINO_USB_CDC_ON_BOOT=1 
 
-##### Чтобы вывод в термиал заработал сразу, нужно сдетаь паузу на 1с
+### Чтобы вывод в термиал заработал сразу, нужно сдетаь паузу на 1с
 	Serial.begin(115200);
     #ifdef ESP32
     delay(1000);  // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
     #endif
 
-##### Если не удается загрузить прошивку:
+### Если не удается загрузить прошивку:
 Для включения загрузки через usb нужно зажать BOOT, потом RESET, отпускаем RESET, потом отпускаем BOOT, после чего плата начинает прошиваться 
 
+### Определение значений во флагах для всех конфигураций
+в platformio.ini добавить разделы, и в нужных расширить
+
+    [env]
+    build_flags = 
+    '-DWIFI_SSID="mywifissid"'
+    '-DWIFI_PASS="mypass"'
+
+    [env:d1_mini_lite]
+    ...
+    build_flags = 
+    ${env.build_flags}
+    '-DMODE="server"'
+
+    [env:esp32c3]
+    ...
+    build_flags =    
+    ${env.build_flags}
+    '-DMODE="client"'
+
+В основном коде, н-р в main.cpp можно вывести:
+
+    Serial.println("-----------WIFI----------");
+    Serial.print("SSID: ");  Serial.println(WIFI_SSID);
+    Serial.print("PASS: ");  Serial.println(WIFI_PASS);
+    Serial.print("MODE: ");  Serial.println(MODE);
+    Serial.println("-------------------------");
+
+Output:
+
+    -----------WIFI----------
+    SSID: mywifissid
+    PASS: mypass
+    MODE: server
+    -------------------------

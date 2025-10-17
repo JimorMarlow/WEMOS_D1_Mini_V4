@@ -15,7 +15,7 @@ uint32_t MorseCode::send(const String& text)
     if(!dit_code_.empty())
     {
         duration_ms = get_dit_code_duration(dit_code_);
-        debug_trace(text);        
+    //    debug_trace(text);        
         transmitting_ = true;     // идет процесс передачи
         is_completed_ = false;     // завершено
         dit_pos_ = 0;
