@@ -6,7 +6,7 @@
 #include "etl_memory.h"
 
 #include "led.h"
-LED blinkLED  (LED_MORSE, false, INVERSE_BUILDING_LED);
+LED blinkLED  (LED_MORSE, false, INVERSE_BUILTING_LED);
 
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
@@ -28,9 +28,7 @@ uint32_t BLINK_DURATION = 10;
 
 void setup() {
     Serial.begin(115200);
-    #ifdef ESP32
-    delay(1000);  // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
-    #endif
+    if(SERIAL_INIT_DELAY > 0) delay(SERIAL_INIT_DELAY);  // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
     
     blinkLED.off();
     blinkLED.blink(BLINK_DURATION);
@@ -50,15 +48,15 @@ void setup() {
   //  etl::test_all(Serial);
     /////////////////////////////////////////
 
-    Serial.println("-----------WIFI----------");
-    Serial.print("SSID: ");  Serial.println(WIFI_SSID);
-    Serial.print("PASS: ");  Serial.println(WIFI_PASS);
-    Serial.print("MODE: ");  Serial.println(MODE);
+    // Serial.println("-----------WIFI----------");
+    // Serial.print("SSID: ");  Serial.println(WIFI_SSID);
+    // Serial.print("PASS: ");  Serial.println(WIFI_PASS);
+    // Serial.print("MODE: ");  Serial.println(MODE);
     
-    // Подключение к Wi-Fi не требуется для получения MAC-адреса.
-    // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
-    Serial.print("MAC : ");  Serial.println(WiFi.macAddress());
-    Serial.println("-------------------------");
+    // // Подключение к Wi-Fi не требуется для получения MAC-адреса.
+    // // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
+    // Serial.print("MAC : ");  Serial.println(WiFi.macAddress());
+    // Serial.println("-------------------------");
 }
 
 void loop() 
