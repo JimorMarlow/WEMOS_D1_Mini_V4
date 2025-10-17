@@ -14,7 +14,7 @@
   // Код только для ESP32-C3
   #pragma message("Компилируется под ESP32-C3 mini")
   bool INVERSE_BUILDING_LED = true;
-  const int LED_MORSE = LED_BUILTIN; //8; // LED_BUILTIN
+  const int LED_MORSE = 8; //LED_BUILTIN; НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
 #else
   // Код для других плат
   bool INVERSE_BUILDING_LED = false; 
@@ -29,7 +29,7 @@ LED blinkLED  (LED_MORSE, false, INVERSE_BUILDING_LED);
 
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
-etl::unique_ptr<MorseCode> morse;// = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
 const uint32_t MORSE_INTERVAL = 5000;
 GTimer timer_Morse(MS);               // создать миллисекундный таймер
 
@@ -65,12 +65,13 @@ void setup() {
 
     /////////////////////////////////////////
     // atl - отладка функционала
-    etl::test_all(Serial);
+  //  etl::test_all(Serial);
     /////////////////////////////////////////
 }
 
 void loop() 
 {
+    // blinkLED.tick();
     // if(blinkLED.tick())
     // {
     //   Serial.print(millis()); Serial.print(": "); Serial.println("off");

@@ -11,7 +11,8 @@ uint32_t MorseCode::send(const String& text)
 {
     reset();
     uint32_t duration_ms = 0;
-    if(dit_code_ = message_to_code(text); !dit_code_.isEmpty())
+    dit_code_ = message_to_code(text);
+    if(!dit_code_.empty())
     {
         duration_ms = get_dit_code_duration(dit_code_);
         debug_trace(text);        
@@ -29,7 +30,7 @@ void MorseCode::reset()
     if(led_) led_->off();
     transmitting_ = false;     // идет процесс передачи
     is_completed_ = false;     // завершено
-    dit_code_  = "";        // последовательность точек-тире для текущего символа      
+    dit_code_.clear();        // последовательность точек-тире для текущего символа      
     dit_pos_   = -1;        // указатель на текущий элемент
 }
 
@@ -46,16 +47,17 @@ String MorseCode::get_char_code(char ch)
     return String("");
 }
 
-String MorseCode::message_to_code(const String& text)
+etl::vector<char> MorseCode::message_to_code(const String& text)
 {
     static String separators = " ,.|!?-/\\";
-    String codes;
+    etl::vector<char> codes;
     for(char ch : text)
     {
-        if(auto code = get_char_code(ch); !code.isEmpty())
+        auto code = get_char_code(ch); 
+        if(!code.isEmpty())
         {
-            codes += code;        // последовательность точек-тире для текущего символа      
-            codes += code_t::PAUSE;        
+            for(auto dit : code) codes.push_back(dit);        // последовательность точек-тире для текущего символа      
+            codes.push_back(code_t::PAUSE);        
         }
         else
         {
@@ -64,11 +66,11 @@ String MorseCode::message_to_code(const String& text)
                 if(ch == sep)
                 {
                     // Добавить раздилитель
-                    if(!codes.isEmpty() && codes[codes.length()-1] == code_t::PAUSE) {
-                        codes[codes.length()-1] = code_t::WDBR; 
+                    if(!codes.empty() && codes.back() == code_t::PAUSE) {
+                        codes.back() = code_t::WDBR; 
                     }
                     else {
-                        codes += code_t::WDBR;
+                        codes.push_back(code_t::WDBR);
                     }
                     break;
                 }
@@ -89,7 +91,7 @@ void MorseCode::tick()
     if(led_) led_->tick();
     if(timer_next_.isReady())
     {
-        if(dit_pos_ < static_cast<int>(dit_code_.length()))
+        if(dit_pos_ < static_cast<int>(dit_code_.size()))
         {
             // Передать текущий символ
             switch(dit_code_[dit_pos_])
@@ -131,7 +133,7 @@ void MorseCode::tick()
     }
 }
 
-uint32_t MorseCode::get_dit_code_duration(const String& dit_code)
+uint32_t MorseCode::get_dit_code_duration(const etl::vector<char>& dit_code)
 {
     int dit_count = 0;
 
@@ -165,7 +167,13 @@ void MorseCode::debug_trace(const String& value)
     Serial.print(millis()); Serial.print(" ms| send: ");
     Serial.print(value);
     Serial.print(" : ");
-    Serial.println(message_to_code(value));
+    String str_message;
+    auto message = message_to_code(value); 
+    if(!message.empty())
+    {
+        for(auto dit : message) str_message += String(dit);
+        Serial.println(str_message);
+    }   
 }
 
 void MorseCode::debug_trace_dit(code_t dit, int on_count, int off_count)

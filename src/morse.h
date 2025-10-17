@@ -4,6 +4,7 @@
 
 #include "led.h"
 #include "GyverTimer.h"
+#include "etl_vector.h"
 
 class MorseCode
 {
@@ -40,9 +41,9 @@ public:
     void debug_trace_dit(code_t dit, int on_count, int off_count);  
 
 protected:
-    String message_to_code(const String& text);
+    etl::vector<char> message_to_code(const String& text);
     String get_char_code(char ch);
-    uint32_t get_dit_code_duration(const String& dit_code);
+    uint32_t get_dit_code_duration(const etl::vector<char>& dit_code);
 
 protected:
     LED*     led_           = nullptr;   // светодиод для передачи кода
@@ -50,7 +51,7 @@ protected:
 
     bool     transmitting_  = false;     // идет процесс передачи
     bool     is_completed_  = false;     // завершено
-    String   dit_code_      = "";        // последовательность точек-тире для текущего символа      
+    etl::vector<char> dit_code_;         // последовательность точек-тире для текущей передачи
     int      dit_pos_       = -1;        // указатель на текущий элемент
 
     GTimer   timer_next_;        // миллисекундный таймер для передачи следующего символа

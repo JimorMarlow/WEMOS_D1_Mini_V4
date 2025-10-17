@@ -9,6 +9,10 @@ namespace data {
     struct th_t {
         float temperature   = 0.0;
         float humidity      = 0.0;
+        
+        th_t() = default;
+        th_t(float t, float hum) : temperature {t}, humidity {hum} {}
+        constexpr th_t(std::nullptr_t) : temperature(0.0), humidity(0.0) {} // Ключевой конструктор для static_cast<th_t>{0}
 
         // Оператор сложения (создает новый объект)
         th_t operator+(const th_t& rhs) const {
