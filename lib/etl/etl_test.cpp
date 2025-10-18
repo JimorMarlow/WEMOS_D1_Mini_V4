@@ -200,6 +200,21 @@ namespace etl
         }
         TEST_EQUAL(math::equals(sum1, sum2), true, "vector<float> assign and check summ");
 
+        // Инициализация из статического массива
+        const uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; 
+        etl::vector<uint8_t> mac{size_t(6), 0xFF};
+        etl::vector<uint8_t> mac1 {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+        etl::vector<uint8_t> mac2 {broadcastAddress}; 
+        etl::vector<uint8_t> mac3 = broadcastAddress; 
+        const etl::vector<uint8_t> mac4 {broadcastAddress}; 
+        TEST_EQUAL(mac.size(), 6, "mac size() 6");
+        TEST_EQUAL(mac.capacity(), 6, "mac capacity() 6");
+        for(auto b : mac) TEST_EQUAL(b, 0xFF, "mac bytes oxFF");
+        TEST_EQUAL(mac, mac1, "mac == mac1");
+        TEST_EQUAL(mac1, mac2, "mac1 == mac2");
+        TEST_EQUAL(mac2, mac3, "mac2 == mac3");
+        TEST_EQUAL(mac3, mac4, "mac3 == mac4");
+        
         return "";  // no errors
     }
 

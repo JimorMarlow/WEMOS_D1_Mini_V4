@@ -4,9 +4,11 @@
 
 #include "Arduino.h"
 
+#define UNREFERENCED_PARAMETER(P) ((void)(P))
+
 namespace etl
 {
-
+    
 // Простой аналог std::move
 template<typename T>
 struct remove_reference {

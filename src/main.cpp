@@ -8,9 +8,17 @@
 #include "led.h"
 LED blinkLED  (LED_MORSE, false, INVERSE_BUILTING_LED);
 
+#include "morse_espnow.h"
+morse_relay_mgr morse_relay(true); // Передатчик данных по ESPNOW
+
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
+// etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+#ifdef MORSE_CLIENT
+etl::unique_ptr<MorseCode> morse;// = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+#elif MORSE_SERVER
 etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+#endif
 const uint32_t MORSE_INTERVAL = 5000;
 GTimer timer_Morse(MS);               // создать миллисекундный таймер
 
@@ -24,7 +32,7 @@ uint32_t BLINK_DURATION = 10;
 // atl - отладка функционала
 #include "etl_test.h"
 /////////////////////////////////////////
-#include "esp_wifi.h"
+#include "espnow/esp_manager.h"
 
 void setup() {
     Serial.begin(115200);
@@ -48,15 +56,15 @@ void setup() {
   //  etl::test_all(Serial);
     /////////////////////////////////////////
 
-    // Serial.println("-----------WIFI----------");
-    // Serial.print("SSID: ");  Serial.println(WIFI_SSID);
-    // Serial.print("PASS: ");  Serial.println(WIFI_PASS);
-    // Serial.print("MODE: ");  Serial.println(MODE);
+    Serial.println("-----------WIFI----------");
+    Serial.print("SSID: ");  Serial.println(WIFI_SSID);
+    Serial.print("PASS: ");  Serial.println(WIFI_PASS);
+    Serial.print("MODE: ");  Serial.println(MORSE_MODE);
     
-    // // Подключение к Wi-Fi не требуется для получения MAC-адреса.
-    // // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
-    // Serial.print("MAC : ");  Serial.println(WiFi.macAddress());
-    // Serial.println("-------------------------");
+    // Подключение к Wi-Fi не требуется для получения MAC-адреса.
+    // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
+    Serial.print("MAC : ");  Serial.println(espnow::get_mac_address());
+    Serial.println("-------------------------");
 }
 
 void loop() 
@@ -74,8 +82,7 @@ void loop()
     //   timer_LED.setTimeout(BLINK_INTERVAL);
     // }
 
-    if(morse) 
-    {
+    if(morse) {
       morse->tick();
       if (timer_Morse.isReady()) 
       {
@@ -84,5 +91,8 @@ void loop()
           uint32_t transmittion_duration_ms = morse->send(text);
           timer_Morse.setTimeout(MORSE_INTERVAL + transmittion_duration_ms);
       }
+    }
+    else {
+      blinkLED.tick(); // если не используется morse нужно вызывать тут для обновления внутреннего таймера
     }
 }

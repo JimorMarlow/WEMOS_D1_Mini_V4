@@ -30,3 +30,14 @@
   bool INVERSE_BUILTING_LED = false; 
   const int LED_MORSE = LED_BUILTIN;
 #endif
+
+#if defined(MORSE_MODE)
+    #pragma message(MORSE_MODE)
+    constexpr bool IS_MORSE_CLIENT = (strcmp(MORSE_MODE, "client") == 0);
+    constexpr bool IS_MORSE_SERVER = (strcmp(MORSE_MODE, "server") == 0);
+#else
+    #pragma message("MORSE_MODE не определен")
+    constexpr bool IS_MORSE_CLIENT = false;
+    constexpr bool IS_MORSE_SERVER = false;
+#endif
+

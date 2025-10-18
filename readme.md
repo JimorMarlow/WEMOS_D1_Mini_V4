@@ -94,3 +94,6 @@ badlogicgames.serial-plotter
 https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter
 
 ---
+
+## TODO
+- Перейти на GTimer https://github.com/GyverLibs/GTimer
