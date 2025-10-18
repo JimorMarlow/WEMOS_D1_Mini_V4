@@ -88,3 +88,9 @@ Output:
     lib_extra_dirs = C:\Users\Alex\OneDrive\Documents\PlatformIO\libraries
 
 ---
+
+### serial-plotter extention для показа графиков из серийного порта
+badlogicgames.serial-plotter
+https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter
+
+---
