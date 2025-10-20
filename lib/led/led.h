@@ -1,7 +1,7 @@
 // LED - простой класс для мигания светодиодом
 #pragma once
-
-#include "GyverTimer.h"
+#include "Arduino.h"
+#include <GTimer.h>
 
 class LED
 {
@@ -28,5 +28,5 @@ protected:
     bool    state_  = false;
     bool    inverse_ = false;   // инвертировать состояние для некоторых пинов (н-р, встроенный led для esp8266)
 
-    GTimer timer_Blink;                 // создать миллисекундный таймер для управления морганием
+    GTimer<millis> timer_Blink;                 // создать миллисекундный таймер для управления морганием
 };

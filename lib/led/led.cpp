@@ -60,17 +60,17 @@ void LED::toggle()
 void LED::blink(uint32_t delay_ms)
 {
     toggle();
-    timer_Blink.setTimeout(delay_ms);
+    timer_Blink.start(delay_ms, GTMode::Timeout);
 }
 
 void LED::reset()   // сбросить таймеры моргания, если были
 {
-    timer_Blink.reset();
+    timer_Blink.stop();
 }
 
 bool LED::tick()
 {
-    if(timer_Blink.isReady())
+    if(timer_Blink.tick())
     {
         toggle();
         return true;

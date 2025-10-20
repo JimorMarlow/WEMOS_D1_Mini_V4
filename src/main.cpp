@@ -4,6 +4,7 @@
 #include "pinout.h"
 //////////////////////////////////////////////////////////
 #include "etl_memory.h"
+#include <GTimer.h>
 
 #include "led.h"
 LED blinkLED  (LED_MORSE, false, INVERSE_BUILTING_LED);
@@ -20,11 +21,10 @@ etl::unique_ptr<MorseCode> morse;// = etl::make_unique<MorseCode>(&blinkLED, MOR
 etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
 #endif
 const uint32_t MORSE_INTERVAL = 5000;
-GTimer timer_Morse(MS);               // создать миллисекундный таймер
+GTimer<millis> timer_Morse;               // создать миллисекундный таймер
 
 // Запуск по интервалу
-#include "GyverTimer.h"
-GTimer timer_LED(MS);               // создать миллисекундный таймер
+GTimer<millis> timer_LED;
 uint32_t BLINK_INTERVAL = 2000;
 uint32_t BLINK_DURATION = 10;
 
@@ -40,20 +40,20 @@ void setup() {
     
     blinkLED.off();
     blinkLED.blink(BLINK_DURATION);
-    timer_LED.setTimeout(BLINK_INTERVAL);   // настроить интервал
+    timer_LED.start(BLINK_INTERVAL, GTMode::Timeout);   // настроить интервал
   
     // morse.debug_trace("123");
     // morse.debug_trace("123 123");
     // morse.debug_trace("123.123,098");
     // morse.debug_trace("pirat123.123 dde");
    if(morse)
-     timer_Morse.setTimeout(MORSE_INTERVAL);
+     timer_Morse.start(MORSE_INTERVAL, GTMode::Timeout);
 
     Serial.println("start...");
 
     /////////////////////////////////////////
     // atl - отладка функционала
-  //  etl::test_all(Serial);
+    etl::test_all(Serial);
     /////////////////////////////////////////
 
     Serial.println("-----------WIFI----------");
@@ -79,17 +79,17 @@ void loop()
     // {
     //   blinkLED.blink(BLINK_DURATION); // blinkLED.toggle();      
     //   Serial.print(millis()); Serial.print(": "); Serial.println("blink");                    
-    //   timer_LED.setTimeout(BLINK_INTERVAL);
+    //   timer_LED.start(BLINK_INTERVAL, GTMode::Timeout)
     // }
 
     if(morse) {
       morse->tick();
-      if (timer_Morse.isReady()) 
+      if (timer_Morse.tick()) 
       {
           // String text = "ntcn 123.123,098";
           String text = String(millis());
           uint32_t transmittion_duration_ms = morse->send(text);
-          timer_Morse.setTimeout(MORSE_INTERVAL + transmittion_duration_ms);
+          timer_Morse.start(MORSE_INTERVAL + transmittion_duration_ms, GTMode::Timeout);
       }
     }
     else {

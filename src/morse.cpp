@@ -19,7 +19,7 @@ uint32_t MorseCode::send(const String& text)
         transmitting_ = true;     // идет процесс передачи
         is_completed_ = false;     // завершено
         dit_pos_ = 0;
-        timer_next_.setInterval(interval_t::pulse * dit_duration_);
+        timer_next_.start(interval_t::pulse * dit_duration_, GTMode::Timeout);
     }
     
     return duration_ms;
@@ -89,7 +89,7 @@ etl::vector<char> MorseCode::message_to_code(const String& text)
 void MorseCode::tick()
 {
     if(led_) led_->tick();
-    if(timer_next_.isReady())
+    if(timer_next_.tick())
     {
         if(dit_pos_ < static_cast<int>(dit_code_.size()))
         {
@@ -98,22 +98,22 @@ void MorseCode::tick()
             {
             case code_t::DOT:
                 if(led_) led_->blink(interval_t::dot * dit_duration_);
-                timer_next_.setTimeout((interval_t::dot + interval_t::pulse) * dit_duration_);
+                timer_next_.start((interval_t::dot + interval_t::pulse) * dit_duration_, GTMode::Timeout);
             //    debug_trace_dit(code_t::DOT, interval_t::dot, interval_t::pulse);
                 break;        
             case code_t::DASH:
                 if(led_) led_->blink(interval_t::dash * dit_duration_);
-                timer_next_.setTimeout((interval_t::dash + interval_t::pulse) * dit_duration_);
+                timer_next_.start((interval_t::dash + interval_t::pulse) * dit_duration_, GTMode::Timeout);
             //    debug_trace_dit(code_t::DASH, interval_t::dash, interval_t::pulse);
                 break;        
             case code_t::PAUSE:
                 if(led_) led_->off();
-                timer_next_.setTimeout(interval_t::symbol * dit_duration_);
+                timer_next_.start(interval_t::symbol * dit_duration_, GTMode::Timeout);
             //    debug_trace_dit(code_t::PAUSE, 0, interval_t::symbol);
                 break;        
             case code_t::WDBR:
                 if(led_) led_->off();
-                timer_next_.setTimeout(interval_t::word * dit_duration_);
+                timer_next_.start(interval_t::word * dit_duration_, GTMode::Timeout);
             //    debug_trace_dit(code_t::WDBR, 0, interval_t::word);
                 break;        
             default:

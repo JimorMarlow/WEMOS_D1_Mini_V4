@@ -3,7 +3,7 @@
 #pragma once
 
 #include "led.h"
-#include "GyverTimer.h"
+#include "GTimer.h"
 #include "etl_vector.h"
 
 class MorseCode
@@ -54,7 +54,7 @@ protected:
     etl::vector<char> dit_code_;         // последовательность точек-тире для текущей передачи
     int      dit_pos_       = -1;        // указатель на текущий элемент
 
-    GTimer   timer_next_;        // миллисекундный таймер для передачи следующего символа
+    GTimer<millis>  timer_next_;        // миллисекундный таймер для передачи следующего символа
     
     table_t table_digits_ [10] {
         {'1', ".----"},
