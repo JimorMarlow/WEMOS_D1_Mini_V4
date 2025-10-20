@@ -37,6 +37,17 @@ namespace espnow {
             memcpy(mac.data(), mac_addr, mac.size());        
         }
         endpoint_t(const endpoint_t& item) : mac{item.mac} {}
+
+        String string() const {
+            String s;
+            for(auto b : mac)
+            {
+                if(!s.isEmpty()) s += ":";
+                s += String(b, HEX);
+            }
+            s.toUpperCase();
+            return s;
+        }
     };
 
     template<typename T>   // define uint32_t timestamp; in T
@@ -64,8 +75,7 @@ namespace espnow {
         // Виртуальные методы для переопределения в производных классах
         virtual void on_data_sent(const endpoint_t& to, esp_now_send_status_t status) {
             // Базовая реализация - можно переопределить
-            Serial.print("Отправлено: ");
-            Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Успешно" : "Ошибка");
+            Serial.printf("Sent to %s %s\n", to.string().c_str(), status == ESP_NOW_SEND_SUCCESS ? "SUCCESS" : "FAIL");
         }
         
         virtual void on_data_recieve(const endpoint_t& from, const uint8_t *incomingData, int len) {
@@ -73,6 +83,7 @@ namespace espnow {
             T msg;
             memcpy(&msg, incomingData, sizeof(T));
             last_received_message = msg;
+            Serial.printf("Recieved from %s bytes: %d \n", from.string().c_str(), len);
         }
 
     public:
