@@ -14,6 +14,9 @@ namespace etl
     String test_unique();
     String test_queue();
     String test_vector();
+    String test_array();
+    String test_espnow();
+    String test_lookup();
 
     // проверка алгоритмов 
     void test_average_filter(Stream& trace);

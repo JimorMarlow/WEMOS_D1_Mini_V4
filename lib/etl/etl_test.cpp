@@ -4,12 +4,15 @@
 #include "etl_memory.h"
 #include "etl_queue.h"
 #include "etl_vector.h"
+#include "etl_array.h"
 #include "etl_utility.h"
+#include "etl_lookup.h"
 #include "filter/moving_average.h"
 #include "filter/exponential.h"
 #include "filter/median.h"
 #include "sensor/temperature.h"
 #include "tools/stop_watch.h"
+#include "esp_manager/esp_manager.h"
 
 namespace etl 
 {
@@ -27,6 +30,9 @@ namespace etl
         test_result(trace, "test_unique", test_unique());
         test_result(trace, "test_queue", test_queue());
         test_result(trace, "test_vector", test_vector());
+        test_result(trace, "test_array", test_array());
+        test_result(trace, "test_espnow", test_espnow());
+        test_result(trace, "test_lookup", test_lookup());
 
         test_result(trace, "test_empty", test_empty());
         
@@ -34,7 +40,7 @@ namespace etl
         int memory_leaks = int(ESP.getFreeHeap()) - mem_free;
         trace.print("MEMORY LEAKS: "); trace.print(memory_leaks); trace.println(memory_leaks == 0 ? "\tOK" : "\tFAILED");
         trace.println("--------------------------------");
-        test_average_filter(trace);
+     //   test_average_filter(trace);
 
         return true;
     }
@@ -202,13 +208,19 @@ namespace etl
 
         // Инициализация из статического массива
         const uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; 
-        etl::vector<uint8_t> mac{size_t(6), 0xFF};
+        etl::vector<uint8_t> mac (size_t(6), 0xFF);
         etl::vector<uint8_t> mac1 {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
         etl::vector<uint8_t> mac2 {broadcastAddress}; 
         etl::vector<uint8_t> mac3 = broadcastAddress; 
         const etl::vector<uint8_t> mac4 {broadcastAddress}; 
+
         TEST_EQUAL(mac.size(), 6, "mac size() 6");
         TEST_EQUAL(mac.capacity(), 6, "mac capacity() 6");
+
+        TEST_EQUAL(mac1.size(), 6, "mac1 size() 6");
+        TEST_EQUAL(mac2.size(), 6, "mac2 size() 6");
+        TEST_EQUAL(mac3.size(), 6, "mac3 size() 6");
+
         for(auto b : mac) TEST_EQUAL(b, 0xFF, "mac bytes oxFF");
         TEST_EQUAL(mac, mac1, "mac == mac1");
         TEST_EQUAL(mac1, mac2, "mac1 == mac2");
@@ -218,6 +230,102 @@ namespace etl
         return "";  // no errors
     }
 
+    // PROGMEM массивы
+    const uint8_t mac_address_p[] PROGMEM = {0xF4, 0xCF, 0xA2, 0x78, 0xDF, 0xF9};
+    const uint16_t sensor_data_p[] PROGMEM = {100, 200, 300, 400, 500};
+    const char welcome_text_p[] PROGMEM = "Hello from PROGMEM!";
+   
+    String test_array()
+    {
+        const uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; 
+        etl::array mac1{broadcastAddress};
+        TEST_EQUAL(mac1.size(), 6, "array mac1 size() 6");
+        uint32_t summ = 0;
+        for(auto bb : mac1) summ += bb;
+        TEST_EQUAL(summ, 6*255, "array mac1 summ");
+
+        const uint8_t test_arr1[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; 
+        etl::array<uint8_t> sub1{test_arr1+2, size_t(3)};
+        TEST_EQUAL(sub1.size(), 3, "array sub1 size() 3");
+        TEST_EQUAL(sub1.at(0), 2, "array sub1.at(0) == 2");
+
+        int test_arr2[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}; 
+        etl::array<int> arr2 = test_arr2;
+        auto it5 = arr2.find(5);
+        TEST_NOT_EQUAL(it5, arr2.end(), "array fond 5: it5 != arr2.end()");
+        etl::array<int> sub2{it5, size_t(5)};
+        TEST_EQUAL(sub2.size(), 5, "array sub2 size() 5");
+        TEST_EQUAL(sub2.at(0), 5, "array sub2.at(0) == 5");
+        TEST_EQUAL(sub2.at(4), 9, "array sub2.at(4) == 9");
+
+        // Создание оберток
+        pgm::array mac_arr(mac_address_p);
+        pgm::array sensor_arr(sensor_data_p);
+        pgm::array text_arr(welcome_text_p);  // Для строк тоже работает!
+    
+        // Ranged for loop
+        String s_mac = ("MAC: ");
+        for (size_t i = 0; i < mac_arr.size(); ++i) {
+            if (i > 0) s_mac += ":";
+            s_mac += String(mac_arr[i], HEX);
+        }
+        s_mac.toUpperCase();
+        TEST_EQUAL(s_mac, "MAC: F4:CF:A2:78:DF:F9", "pgm::array mac_arr(mac_address_p)" );
+    
+        // Доступ по индексу
+        TEST_EQUAL(sensor_arr[0], 100, "First sensor value: 100");
+        TEST_EQUAL(sensor_arr.size(), 5, "Sensor array size 5");
+    
+        // Поиск
+        TEST_EQUAL(mac_arr.contains(0xA2), true, "MAC contains 0xA2");
+           
+        // Копирование в RAM
+        uint8_t mac_ram[6];
+        mac_arr.copy_to(mac_ram, sizeof(mac_ram));
+        etl::array mem_arr(mac_ram);
+        TEST_EQUAL(mac_arr.size(), mem_arr.size(), "mac_arr.size() == mem_arr.size()");
+        TEST_EQUAL(mac_arr.at(3), mem_arr.at(3), "mac_arr.at(3) == mem_arr.at(3)");
+    
+        // Работа со строками
+        String pgm_text = "Text: ";
+        for (auto ch : text_arr) {
+            if (ch == 0) break;  // null terminator
+            pgm_text += String(static_cast<char>(ch));
+        }
+        TEST_EQUAL(pgm_text, "Text: Hello from PROGMEM!", "pgm_text = Text: Hello from PROGMEM!");
+        String pgm_text2 = "Text: " + text_arr.to_string();
+        TEST_EQUAL(pgm_text, pgm_text2, "pgm_text == pgm_text2");
+        
+        return "";  // no errors
+    }
+
+    String test_espnow()
+    {
+        const espnow::endpoint_t s001 {"F4:CF:A2:78:DF:F9"};    
+        espnow::endpoint_t s002 {0xF4,0xCF,0xA2,0x78,0xDF,0xF9}; 
+        
+        const espnow::endpoint_t s003 {"EC:FA:BC:D5:A2:50"};
+        
+        TEST_NOT_EQUAL(s001, s003, "espnow s001 != s003");
+        TEST_EQUAL(s001, s002, "espnow s001 == s002");
+
+        const espnow::endpoint_t esp_modules[] = {s001, s002, s003}; 
+        etl::array<espnow::endpoint_t> modules (esp_modules);
+        TEST_EQUAL(modules.contains(s003), true, "espnow modules.contains(s003)");
+
+        return "";  // no errors
+    }
+
+    const etl::lookup_t<float, float> ntc_sensor_3950_50K_p[] PROGMEM = {{1000.0, 1.0}, {2000.0, 2.0}, {3000.0, 3.0}};
+    const etl::lookup_t<float, float> ntc_sensor_3950_50K[] = {{1000.0, 1.0}, {2000.0, 2.0}, {3000.0, 3.0}};
+    String test_lookup()
+    {
+        etl::array ntc_temp(ntc_sensor_3950_50K);
+        pgm::array ntc_temp_p(ntc_sensor_3950_50K_p);
+
+        return ""; // no errors 
+    }
+    
     // Функция для генерации редких выбросов
     float add_rare_noise(float base_value, int iteration) {
         // Генерируем выбросы примерно каждые 20-30 итераций

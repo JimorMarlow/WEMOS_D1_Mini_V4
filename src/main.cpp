@@ -33,7 +33,7 @@ uint32_t BLINK_DURATION = 10;
 // atl - отладка функционала
 #include "etl_test.h"
 /////////////////////////////////////////
-#include "espnow/esp_manager.h"
+//#include "espnow/esp_manager.h"
 
 void setup() {
     Serial.begin(115200);
@@ -64,7 +64,7 @@ void setup() {
     
     // Подключение к Wi-Fi не требуется для получения MAC-адреса.
     // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
-    Serial.print("MAC : ");  Serial.println(espnow::get_mac_address());
+    Serial.print("MAC : ");  Serial.println(espnow::board::get_mac_address());
     Serial.println("-------------------------");
 }
 

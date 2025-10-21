@@ -1,5 +1,8 @@
 // Вспомогательный инструмента для работы по протоколу espnow для esp8266/esp32
 #pragma once
+#ifndef ESP_MANAGER_H
+#define ESP_MANAGER_H
+
 #include "Arduino.h"
 #include "esp_wifi.h"
 #include "etl_optional.h"
@@ -7,8 +10,10 @@
 #include "etl_utility.h"
 
 #ifdef ESP32
+    #include <WiFi.h>
     #include <esp_now.h>
 #elif ESP8266
+    #include <ESP8266WiFi.h>
     #include <espnow.h>
     // Добавим из ESP32 для совместимости
     typedef enum {
@@ -20,11 +25,15 @@
 #endif
 
 namespace espnow {
-    String get_mac_address() {
-        // Подключение к Wi-Fi не требуется для получения MAC-адреса.
-        // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
-        return WiFi.macAddress();
-    }
+
+    class board {
+        public:
+        static String get_mac_address() {
+            // Подключение к Wi-Fi не требуется для получения MAC-адреса.
+            // WiFi.mode(WIFI_STA); // Устанавливаем режим работы (в данном случае, как станция)
+            return WiFi.macAddress();
+        }
+    };// namespace board
 
     const uint8_t broadcast_address[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; 
 
@@ -37,16 +46,47 @@ namespace espnow {
             memcpy(mac.data(), mac_addr, mac.size());        
         }
         endpoint_t(const endpoint_t& item) : mac{item.mac} {}
+        endpoint_t(const String& text_macaddress) : mac{from_string(text_macaddress)} {}
+
+        endpoint_t(std::initializer_list<uint8_t> init_list) : mac(6, 0x00) {
+            if(init_list.size() == 6) {
+                std::copy(init_list.begin(), init_list.end(), mac.begin());
+            }
+        }
 
         String string() const {
+            return to_string(mac);
+        }
+
+        static String to_string(const etl::vector<uint8_t>& mac_address)
+        {
             String s;
-            for(auto b : mac)
+            for(auto b : mac_address)
             {
                 if(!s.isEmpty()) s += ":";
                 s += String(b, HEX);
             }
             s.toUpperCase();
             return s;
+        }
+
+        static etl::vector<uint8_t> from_string(const String& text)
+        {
+            etl::vector<uint8_t> temp_mac(6,0x00);
+            if (sscanf(text.c_str(), "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx",
+                    &temp_mac[0], &temp_mac[1], &temp_mac[2],
+                    &temp_mac[3], &temp_mac[4], &temp_mac[5]) != 6) {
+                Serial.printf("[ERROR] in from_string %s to mac address\n", text.c_str());
+            }
+            return etl::move(temp_mac);
+        }
+
+        bool operator==(const endpoint_t& other) const {
+            return mac == other.mac;
+        }
+
+        bool operator!=(const endpoint_t& other) const {
+            return !operator==(other);
         }
     };
 
@@ -133,7 +173,7 @@ namespace espnow {
             
             is_initialized = true;
             Serial.println("ESP-NOW инициализирован");
-            Serial.print("MAC: ");  Serial.println(get_mac_address());
+            Serial.print("MAC: ");  Serial.println(espnow::board::get_mac_address());
             
             return true;
         }
@@ -158,7 +198,7 @@ namespace espnow {
                 return false;
             }
             
-            Serial.print("Пир добавлен: "); Serial.println(get_mac_address());
+            Serial.print("Пир добавлен: "); Serial.println(espnow::board::get_mac_address());
             return true;
         }
 
@@ -197,3 +237,5 @@ namespace espnow {
     };
 
 }// namespace espnow
+
+#endif//ESP_MANAGER_H

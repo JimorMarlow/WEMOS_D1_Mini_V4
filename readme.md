@@ -95,5 +95,19 @@ https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter
 
 ---
 
+### При сборке под ESP32C3 появлялось предупреждение 
+
+    warning: init-statement in selection statements only available with -std=c++17 or -std=gnu++17
+        if(auto msg = get_last_received_message(); msg)
+            ^~~~
+Добавить в platformio.ini для сборки [env:esp32c3] параметры:
+
+    build_flags = 
+        -std=gnu++17
+
+    build_unflags =
+        -std=gnu++11
+        -Wregister
+
 ## TODO
-- Перейти на GTimer https://github.com/GyverLibs/GTimer
+[+] Перейти на GTimer https://github.com/GyverLibs/GTimer
