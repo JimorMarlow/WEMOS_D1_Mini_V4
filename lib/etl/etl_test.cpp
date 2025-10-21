@@ -323,6 +323,13 @@ namespace etl
         etl::array ntc_temp(ntc_sensor_3950_50K);
         pgm::array ntc_temp_p(ntc_sensor_3950_50K_p);
 
+        etl::lookup lt_ntc3950(ntc_temp);
+        float temp = lt_ntc3950.raw_to_value(1500);
+        Serial.println(temp,3);
+        TEST_EQUAL(math::equals(temp, 1.5), true, "lt_ntc3950.raw_to_value(1500)");
+    //    TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(500), 1.0), true, "lt_ntc3950.raw_to_value(500)");
+    //    TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(3500), 3.0), true, "lt_ntc3950.raw_to_value(3500)");
+
         return ""; // no errors 
     }
     
