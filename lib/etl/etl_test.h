@@ -19,5 +19,6 @@ namespace etl
     String test_lookup();
 
     // проверка алгоритмов 
-    void test_average_filter(Stream& trace);
+    void profiler_average_filter(Stream& trace);
+    void profiler_lookup_table(Stream& trace);
 }

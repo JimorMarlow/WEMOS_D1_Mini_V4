@@ -40,7 +40,9 @@ namespace etl
         int memory_leaks = int(ESP.getFreeHeap()) - mem_free;
         trace.print("MEMORY LEAKS: "); trace.print(memory_leaks); trace.println(memory_leaks == 0 ? "\tOK" : "\tFAILED");
         trace.println("--------------------------------");
-     //   test_average_filter(trace);
+     
+    //    profiler_average_filter(trace);
+    //    profiler_lookup_table(trace);
 
         return true;
     }
@@ -318,19 +320,88 @@ namespace etl
 
     const etl::lookup_t<float, float> ntc_sensor_3950_50K_p[] PROGMEM = {{1000.0, 1.0}, {2000.0, 2.0}, {3000.0, 3.0}};
     const etl::lookup_t<float, float> ntc_sensor_3950_50K[] = {{1000.0, 1.0}, {2000.0, 2.0}, {3000.0, 3.0}};
+    const etl::lookup_t<float, float> ntc_sensor_3950_50K_desc[] = {{3000.0, 1.0}, {2000.0, 2.0}, {1000.0, 3.0}};
     String test_lookup()
     {
         etl::array ntc_temp(ntc_sensor_3950_50K);
+        etl::array ntc_desc(ntc_sensor_3950_50K_desc);
         pgm::array ntc_temp_p(ntc_sensor_3950_50K_p);
 
-        etl::lookup lt_ntc3950(ntc_temp);
-        float temp = lt_ntc3950.raw_to_value(1500);
-        Serial.println(temp,3);
-        TEST_EQUAL(math::equals(temp, 1.5), true, "lt_ntc3950.raw_to_value(1500)");
-    //    TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(500), 1.0), true, "lt_ntc3950.raw_to_value(500)");
-    //    TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(3500), 3.0), true, "lt_ntc3950.raw_to_value(3500)");
+        /////////////////////////////////////////////////////////
+        //  ascending raw mode
 
+        // Обрезка по границам с интерполяцией между значениями
+        etl::lookup lt_ntc3950(ntc_temp);
+        TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(1500), 1.5), true, "lt_ntc3950.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(500), 1.0), true, "lt_ntc3950.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(3500), 3.0), true, "lt_ntc3950.raw_to_value(3500)");
+
+        // С экстаполяцией за пределами крайних значений
+        etl::lookup <float, float, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE> lt_ntc3950_extra(ntc_temp);
+        TEST_EQUAL(math::equals(lt_ntc3950_extra.raw_to_value(1500), 1.5), true, "lt_ntc3950_extra.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_extra.raw_to_value(500), 0.5), true, "lt_ntc3950_extra.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_extra.raw_to_value(3500), 3.5), true, "lt_ntc3950_extra.raw_to_value(3500)");
+
+        // Ближайшее значение без интеполяции с обрезкой
+        etl::lookup <float, float, lookup_mode::NEAREST, bounds_mode::CLAMP> lt_ntc3950_near(ntc_temp);
+        TEST_EQUAL(math::equals(lt_ntc3950_near.raw_to_value(1500), 1.0), true, "lt_ntc3950_near.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near.raw_to_value(1501), 2.0), true, "lt_ntc3950_near.raw_to_value(1501)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near.raw_to_value(500), 1.0), true, "lt_ntc3950_near.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near.raw_to_value(3500), 3.0), true, "lt_ntc3950_near.raw_to_value(3500)");
+
+    //    float temp = lt_ntc3950_near.raw_to_value(1501);
+    //    Serial.println(temp,3);       
+
+        /////////////////////////////////////////////////////////
+        //  descending raw mode
+
+        // Обрезка по границам с интерполяцией между значениями
+        etl::lookup lt_ntc_desc(ntc_desc);
+        TEST_EQUAL(math::equals(lt_ntc_desc.raw_to_value(1500), 2.5), true, "lt_ntc_desc.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc_desc.raw_to_value(500), 3.0), true, "lt_ntc_desc.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc_desc.raw_to_value(3500), 1.0), true, "lt_ntc_desc.raw_to_value(3500)");
+
+        // С экстаполяцией за пределами крайних значений
+        etl::lookup <float, float, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE> lt_ntc_desc_extra(ntc_desc);
+        TEST_EQUAL(math::equals(lt_ntc_desc_extra.raw_to_value(1500), 2.5), true, "lt_ntc_desc_extra.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc_desc_extra.raw_to_value(500), 3.5), true, "lt_ntc_desc_extra.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc_desc_extra.raw_to_value(3500), 0.5), true, "lt_ntc_desc_extra.raw_to_value(3500)");
+
+        // Ближайшее значение без интеполяции с обрезкой
+        etl::lookup <float, float, lookup_mode::NEAREST, bounds_mode::CLAMP> lt_ntc_desc_near(ntc_desc);
+        TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(1500), 2.0), true, "lt_ntc_desc_near.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(1499), 3.0), true, "lt_ntc_desc_near.raw_to_value(1499)");
+        TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(1501), 2.0), true, "lt_ntc_desc_near.raw_to_value(1501)");
+        TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(500), 3.0), true, "lt_ntc_desc_near.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(3500), 1.0), true, "lt_ntc_desc_near.raw_to_value(3500)");
+        
         return ""; // no errors 
+    }
+
+    void profiler_lookup_table(Stream& trace)
+    {
+        Serial.println();
+        trace.println("--- PROFILER LOOKUP TABLE ---");
+        const etl::lookup_t<float, float> ntc_sensor_3950_50K[] = {{1000.0, 1.0}, {2000.0, 2.0}, {3000.0, 3.0}};
+        etl::array ntc_temp(ntc_sensor_3950_50K);
+        
+        etl::tools::stop_watch stat_arr_mem;
+        etl::lookup lt_ntc3950(ntc_sensor_3950_50K /*ntc_temp*/);
+        
+        Serial.println("raw;\tT;\t");
+        for(float raw = 1000; raw <= 3000; raw += 10)
+        {
+            Serial.print(raw,1); Serial.print(";\t");
+            stat_arr_mem.start();
+            float temp = lt_ntc3950.raw_to_value(raw);
+            stat_arr_mem.stop();
+            Serial.print(temp,4); Serial.print(";\t");
+            Serial.println();
+        }
+
+        trace.println();
+        trace.print("TIME;\tus;\t"); 
+        trace.println(stat_arr_mem.get_averate_time()); 
     }
     
     // Функция для генерации редких выбросов
@@ -347,11 +418,11 @@ namespace etl
         return base_value;
     }
 
-    void test_average_filter(Stream& trace)
+    void profiler_average_filter(Stream& trace)
     {
         ///////////////////////////////////////////////
         // скользящее окно на 5 целых чисел
-        trace.println();
+        trace.println("--- PROFILER AVERAGE_FILETER ---");
         trace.println("i\tfilter_average<int, 5>");
         filter::moving_average<int, 5> avg5_int;
         for(float i = 0; i < 25; i += 1.0)

@@ -53,6 +53,8 @@ private:
         size_t right = table_.size() - 1;
         
         if (is_ascending()) {
+            if(raw <= table_[left].raw) return 0;    // less of left boundary
+            if(raw >= table_[right].raw) return table_.size();  // greater of right boundary
             while (left <= right) {
                 size_t mid = left + (right - left) / 2;
                 if (table_[mid].raw == raw) return mid;
@@ -62,6 +64,8 @@ private:
             return left; // left указывает на позицию вставки
         } else {
             // для убывающего порядка
+            if(raw >= table_[left].raw) return 0;    // less of left boundary
+            if(raw <= table_[right].raw) return table_.size();  // greater of right boundary
             while (left <= right) {
                 size_t mid = left + (right - left) / 2;
                 if (table_[mid].raw == raw) return mid;
@@ -86,8 +90,9 @@ private:
         }
     }
     
+protected:
     // Интерполяция для пользовательских типов
-    V interpolate_custom(const lookup_t<T, V>& a, const lookup_t<T, V>& b, const T& raw) const {
+    virtual V interpolate_custom(const lookup_t<T, V>& a, const lookup_t<T, V>& b, const T& raw) const {
         // Пользователь должен определить операторы для своего типа V
         // или специализировать эту функцию
         double ratio = static_cast<double>(raw - a.raw) / static_cast<double>(b.raw - a.raw);
@@ -102,6 +107,8 @@ public:
     
     template<size_t N>
     lookup(const lookup_t<T, V> (&arr)[N]) : table_(arr) {}
+
+    virtual ~lookup() = default;
     
     // Основная рабочая функция
     V raw_to_value(const T& raw) const {
