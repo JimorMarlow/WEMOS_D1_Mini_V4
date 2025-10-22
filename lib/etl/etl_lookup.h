@@ -1,6 +1,7 @@
 #pragma once
 #include "Arduino.h"
 #include "etl_array.h"
+#include "etl_vector.h"
 
 namespace etl {
 
@@ -24,20 +25,25 @@ enum class bounds_mode {
     EXTRAPOLATE   // Экстраполировать по двум крайним точкам
 };
 
+// Вспомогательные метафункции для определения наличия метода clear()
+namespace detail {
+    template<typename C, typename = void>
+    struct has_clear : std::false_type {};
+    
+    template<typename C>
+    struct has_clear<C, std::void_t<decltype(std::declval<C>().clear())>> : std::true_type {};
+    
+    template<typename C>
+    constexpr bool has_clear_v = has_clear<C>::value;
+}
+
 // Основной класс lookup таблицы
-template <typename T, typename V, lookup_mode Mode = lookup_mode::INTERPOLATE, bounds_mode Bounds = bounds_mode::CLAMP>
+template <typename T, typename V, typename Container = etl::array<lookup_t<T, V>>>
 class lookup {
 private:
-    etl::array<lookup_t<T, V>> table_;
-    
-    // Вспомогательные функции для сравнения
-    static bool less_than(const T& a, const T& b) {
-        return a < b;
-    }
-    
-    static bool greater_than(const T& a, const T& b) {
-        return a > b;
-    }
+    Container table_;
+    lookup_mode mode_ = lookup_mode::INTERPOLATE;
+    bounds_mode bounds_ = bounds_mode::CLAMP;
     
     // Определяем направление сортировки
     bool is_ascending() const {
@@ -64,8 +70,8 @@ private:
             return left; // left указывает на позицию вставки
         } else {
             // для убывающего порядка
-            if(raw >= table_[left].raw) return 0;    // less of left boundary
-            if(raw <= table_[right].raw) return table_.size();  // greater of right boundary
+            if(raw >= table_[left].raw) return 0;    // greater of left boundary
+            if(raw <= table_[right].raw) return table_.size();  // less of right boundary
             while (left <= right) {
                 size_t mid = left + (right - left) / 2;
                 if (table_[mid].raw == raw) return mid;
@@ -103,10 +109,19 @@ public:
     // Конструкторы
     lookup() = default;
     
-    lookup(const etl::array<lookup_t<T, V>>& table) : table_(table) {}
+    lookup(const Container& table, 
+           lookup_mode mode = lookup_mode::INTERPOLATE, 
+           bounds_mode bounds = bounds_mode::CLAMP) 
+        : table_(table), mode_(mode), bounds_(bounds) {}
     
     template<size_t N>
-    lookup(const lookup_t<T, V> (&arr)[N]) : table_(arr) {}
+    lookup(const lookup_t<T, V> (&arr)[N],
+           lookup_mode mode = lookup_mode::INTERPOLATE,
+           bounds_mode bounds = bounds_mode::CLAMP)
+        : table_(arr), mode_(mode), bounds_(bounds) {}
+    
+    lookup(lookup_mode mode, bounds_mode bounds)
+        : mode_(mode), bounds_(bounds) {}
 
     virtual ~lookup() = default;
     
@@ -120,7 +135,7 @@ public:
         // Обработка границ
         if (index == 0) {
             // raw меньше первого элемента
-            if constexpr (Bounds == bounds_mode::CLAMP) {
+            if (bounds_ == bounds_mode::CLAMP) {
                 return table_[0].value;
             } else { // EXTRAPOLATE
                 if (table_.size() >= 2) {
@@ -132,7 +147,7 @@ public:
         
         if (index >= table_.size()) {
             // raw больше последнего элемента
-            if constexpr (Bounds == bounds_mode::CLAMP) {
+            if (bounds_ == bounds_mode::CLAMP) {
                 return table_.back().value;
             } else { // EXTRAPOLATE
                 if (table_.size() >= 2) {
@@ -150,7 +165,7 @@ public:
         // Между двумя точками
         size_t prev_index = index - 1;
         
-        if constexpr (Mode == lookup_mode::NEAREST) {
+        if (mode_ == lookup_mode::NEAREST) {
             // Ближайшее значение
             T dist_prev = std::abs(raw - table_[prev_index].raw);
             T dist_next = std::abs(raw - table_[index].raw);
@@ -160,6 +175,13 @@ public:
             return interpolate(table_[prev_index], table_[index], raw);
         }
     }
+    
+    // Set/Get методы для режимов
+    void set_lookup_mode(lookup_mode mode) { mode_ = mode; }
+    lookup_mode get_lookup_mode() const { return mode_; }
+    
+    void set_bounds_mode(bounds_mode bounds) { bounds_ = bounds; }
+    bounds_mode get_bounds_mode() const { return bounds_; }
     
     // Получение минимального и максимального raw
     T min_raw() const {
@@ -185,155 +207,110 @@ public:
     }
     
     // Доступ к таблице
-    const etl::array<lookup_t<T, V>>& table() const {
+    const Container& table() const {
         return table_;
+    }
+    
+    // Установка новой таблицы
+    void set_table(const Container& table) {
+        table_ = table;
     }
 };
 
 // Вспомогательные функции для создания lookup таблиц
-template<lookup_mode Mode = lookup_mode::INTERPOLATE, 
-         bounds_mode Bounds = bounds_mode::CLAMP,
-         typename T, typename V, size_t N>
-lookup<T, V, Mode, Bounds> make_lookup(const lookup_t<T, V> (&arr)[N]) {
-    return lookup<T, V, Mode, Bounds>(arr);
+template<typename T, typename V, typename Container>
+lookup<T, V, Container> make_lookup(const Container& container,
+                                    lookup_mode mode = lookup_mode::INTERPOLATE,
+                                    bounds_mode bounds = bounds_mode::CLAMP) {
+    return lookup<T, V, Container>(container, mode, bounds);
 }
 
-template<lookup_mode Mode = lookup_mode::INTERPOLATE,
-         bounds_mode Bounds = bounds_mode::CLAMP,
-         typename T, typename V>
-lookup<T, V, Mode, Bounds> make_lookup(const etl::array<lookup_t<T, V>>& arr) {
-    return lookup<T, V, Mode, Bounds>(arr);
+template<typename T, typename V, size_t N>
+lookup<T, V, etl::array<lookup_t<T, V>>> make_lookup(const lookup_t<T, V> (&arr)[N],
+                                                    lookup_mode mode = lookup_mode::INTERPOLATE,
+                                                    bounds_mode bounds = bounds_mode::CLAMP) {
+    return lookup<T, V, etl::array<lookup_t<T, V>>>(arr, mode, bounds);
 }
+
+// Специализированные псевдонимы для удобства
+template<typename T, typename V>
+using array_lookup = lookup<T, V, etl::array<lookup_t<T, V>>>;
+
+template<typename T, typename V>
+using pgm_lookup = lookup<T, V, pgm::array<lookup_t<T, V>>>;
+
+template<typename T, typename V>
+using vector_lookup = lookup<T, V, etl::vector<lookup_t<T, V>>>;
 
 } // namespace etl
 
-// Специализация для PROGMEM массивов
-// cpp
-// namespace etl {
+// Пример использования с разными контейнерами:
+// пример с тестами смотри etl_test.cpp test_lookup()
 
-// // Специализация для работы с PROGMEM массивами
-// template <typename T, typename V, lookup_mode Mode = lookup_mode::INTERPOLATE, bounds_mode Bounds = bounds_mode::CLAMP>
-// class pgm_lookup {
-// private:
-//     pgm::array<lookup_t<T, V>> table_;
-    
-//     // Чтение элемента из PROGMEM
-//     lookup_t<T, V> read_element(size_t index) const {
-//         lookup_t<T, V> result;
-//         result.raw = table_[index].raw;   // автоматически читает из PROGMEM
-//         result.value = table_[index].value; // автоматически читает из PROGMEM
-//         return result;
-//     }
-    
-//     // Бинарный поиск (аналогично обычному lookup)
-//     size_t find_index(const T& raw) const {
-//         if (table_.empty()) return 0;
-        
-//         size_t left = 0;
-//         size_t right = table_.size() - 1;
-//         bool ascending = true;
-        
-//         // Определяем направление сортировки
-//         if (table_.size() >= 2) {
-//             auto first = read_element(0);
-//             auto second = read_element(1);
-//             ascending = first.raw < second.raw;
-//         }
-        
-//         if (ascending) {
-//             while (left <= right) {
-//                 size_t mid = left + (right - left) / 2;
-//                 auto mid_elem = read_element(mid);
-//                 if (mid_elem.raw == raw) return mid;
-//                 if (mid_elem.raw < raw) left = mid + 1;
-//                 else right = mid - 1;
-//             }
-//             return left;
-//         } else {
-//             while (left <= right) {
-//                 size_t mid = left + (right - left) / 2;
-//                 auto mid_elem = read_element(mid);
-//                 if (mid_elem.raw == raw) return mid;
-//                 if (mid_elem.raw > raw) left = mid + 1;
-//                 else right = mid - 1;
-//             }
-//             return left;
-//         }
-//     }
-    
-//     // Интерполяция
-//     V interpolate(const lookup_t<T, V>& a, const lookup_t<T, V>& b, const T& raw) const {
-//         if (a.raw == b.raw) return a.value;
-        
-//         if constexpr (std::is_arithmetic_v<V>) {
-//             double ratio = static_cast<double>(raw - a.raw) / static_cast<double>(b.raw - a.raw);
-//             return static_cast<V>(a.value + ratio * (b.value - a.value));
-//         } else {
-//             double ratio = static_cast<double>(raw - a.raw) / static_cast<double>(b.raw - a.raw);
-//             return a.value + (b.value - a.value) * ratio;
-//         }
-//     }
-
-// public:
-//     pgm_lookup() = default;
-    
-//     pgm_lookup(const pgm::array<lookup_t<T, V>>& table) : table_(table) {}
-    
-//     template<size_t N>
-//     pgm_lookup(const lookup_t<T, V> (&arr)[N]) : table_(arr) {}
-    
-//     V raw_to_value(const T& raw) const {
-//         if (table_.empty()) return V{};
-//         if (table_.size() == 1) return read_element(0).value;
-        
-//         size_t index = find_index(raw);
-        
-//         // Обработка границ
-//         if (index == 0) {
-//             if constexpr (Bounds == bounds_mode::CLAMP) {
-//                 return read_element(0).value;
-//             } else {
-//                 if (table_.size() >= 2) {
-//                     auto first = read_element(0);
-//                     auto second = read_element(1);
-//                     return interpolate(first, second, raw);
-//                 }
-//                 return read_element(0).value;
-//             }
-//         }
-        
-//         if (index >= table_.size()) {
-//             if constexpr (Bounds == bounds_mode::CLAMP) {
-//                 return read_element(table_.size() - 1).value;
-//             } else {
-//                 if (table_.size() >= 2) {
-//                     auto last = read_element(table_.size() - 1);
-//                     auto prev = read_element(table_.size() - 2);
-//                     return interpolate(prev, last, raw);
-//                 }
-//                 return read_element(table_.size() - 1).value;
-//             }
-//         }
-        
-//         auto current = read_element(index);
-//         if (current.raw == raw) {
-//             return current.value;
-//         }
-        
-//         size_t prev_index = index - 1;
-//         auto prev = read_element(prev_index);
-        
-//         if constexpr (Mode == lookup_mode::NEAREST) {
-//             T dist_prev = std::abs(raw - prev.raw);
-//             T dist_next = std::abs(raw - current.raw);
-//             return (dist_prev <= dist_next) ? prev.value : current.value;
-//         } else {
-//             return interpolate(prev, current, raw);
-//         }
-//     }
-    
-//     bool valid() const { return !table_.empty(); }
-//     size_t size() const { return table_.size(); }
+// #include "etl_lookup.h"
+// // Пример данных
+// const etl::lookup_t<uint16_t, float> voltage_data[] = {
+//     {0, 0.0}, {1024, 3.3}, {2048, 5.0}, {3072, 7.5}, {4095, 10.0}
 // };
+// // PROGMEM данные
+// const etl::lookup_t<uint16_t, float> pgm_voltage_data[] PROGMEM = {
+//     {0, 0.0}, {100, 1.0}, {200, 2.0}, {300, 3.0}
+// };
+// void setup() {
+//     Serial.begin(115200);
+   
+//     // 1. Использование с etl::array
+//     etl::array voltage_array(voltage_data);
+//     auto lookup1 = etl::make_lookup<uint16_t, float>(voltage_array);
+    
+//     // 2. Использование с массивом (автоматическое создание etl::array)
+//     auto lookup2 = etl::make_lookup<uint16_t, float>(voltage_data);
+    
+//     // 3. Использование с pgm::array
+//     pgm::array pgm_array(pgm_voltage_data);
+//     auto lookup3 = etl::make_lookup<uint16_t, float>(pgm_array);
+    
+//     // 4. Использование с etl::vector
+//     etl::vector<etl::lookup_t<uint16_t, float>, 10> voltage_vector;
+//     voltage_vector.push_back({0, 0.0});
+//     voltage_vector.push_back({100, 1.0});
+//     voltage_vector.push_back({200, 2.0});
+    
+//     auto lookup4 = etl::make_lookup<uint16_t, float>(voltage_vector);
+    
+//     // 5. Прямое создание с указанием контейнера
+//     etl::lookup<uint16_t, float, etl::array<etl::lookup_t<uint16_t, float>>> lookup5(voltage_data);
+    
+//     // Тестирование
+//     Serial.println("=== Lookup Tests ===");
+//     Serial.printf("Lookup1 (1500): %.2f\n", lookup1.raw_to_value(1500));
+//     Serial.printf("Lookup2 (2500): %.2f\n", lookup2.raw_to_value(2500));
+//     Serial.printf("Lookup3 (150): %.2f\n", lookup3.raw_to_value(150));
+//     Serial.printf("Lookup4 (50): %.2f\n", lookup4.raw_to_value(50));
+    
+//     // Изменение режимов в runtime
+//     Serial.println("\n=== Changing Modes ===");
+//     lookup1.set_lookup_mode(etl::lookup_mode::NEAREST);
+//     Serial.printf("Nearest (1500): %.2f\n", lookup1.raw_to_value(1500));
+    
+//     lookup1.set_bounds_mode(etl::bounds_mode::EXTRAPOLATE);
+//     Serial.printf("Extrapolate (5000): %.2f\n", lookup1.raw_to_value(5000));
+    
+//     // Использование псевдонимов
+//     Serial.println("\n=== Using Aliases ===");
+//     etl::pgm_lookup<uint16_t, float> pgm_lookup(pgm_voltage_data);
+//     Serial.printf("PGM Lookup (250): %.2f\n", pgm_lookup.raw_to_value(250));
+// }
 
-//} // namespace etl
+// void loop() {
+// }
+
+// Ключевые изменения:
+// Шаблонный контейнер - поддержка etl::array, pgm::array, etl::vector и других
+// Динамические параметры - режимы поиска как поля класса, а не параметры шаблона
+// Set/Get методы - возможность изменения режимов в runtime
+// Гибкие конструкторы - разные способы инициализации
+// Вспомогательные функции - make_lookup для удобного создания
+// Псевдонимы типов - для часто используемых комбинаций
+// класс поддерживает любые контейнеры с индексным доступом и позволяет динамически менять параметры поиска
+

@@ -141,8 +141,20 @@ constexpr array<T> make_array(const T (&arr)[N]) noexcept {
 
 namespace pgm {
 
-// Вспомогательные функции для разных типов
-template<typename T> struct pgm_traits;
+// Обобщенная специализация для любых типов (кроме уже специализированных)
+template<typename T>
+struct pgm_traits {
+    static T read(const void* ptr) {
+        T result;
+        // Для сложных типов читаем побайтово
+        const uint8_t* byte_ptr = static_cast<const uint8_t*>(ptr);
+        uint8_t* result_bytes = reinterpret_cast<uint8_t*>(&result);
+        for (size_t i = 0; i < sizeof(T); ++i) {
+            result_bytes[i] = pgm_read_byte(byte_ptr + i);
+        }
+        return result;
+    }
+};
 
 template<> struct pgm_traits<uint8_t> {
     static uint8_t read(const void* ptr) { return pgm_read_byte(ptr); }

@@ -7,15 +7,18 @@
 #include "etl_array.h"
 #include "etl_utility.h"
 #include "etl_lookup.h"
+#include "etl_color.h"
 #include "filter/moving_average.h"
 #include "filter/exponential.h"
 #include "filter/median.h"
 #include "sensor/temperature.h"
 #include "tools/stop_watch.h"
+#include "tools/strings.h"
 #include "esp_manager/esp_manager.h"
 
-namespace etl 
-{
+namespace etl {
+namespace unittest { 
+
     static uint32_t mem_free = ESP.getFreeHeap();   // контроль памяти 
     static uint32_t mem_free_before = mem_free;
 
@@ -33,6 +36,8 @@ namespace etl
         test_result(trace, "test_array", test_array());
         test_result(trace, "test_espnow", test_espnow());
         test_result(trace, "test_lookup", test_lookup());
+        test_result(trace, "test_color_lookup", test_color_lookup());
+        test_result(trace, "test_color_spectrum", test_color_spectrum());
 
         test_result(trace, "test_empty", test_empty());
         
@@ -326,24 +331,25 @@ namespace etl
         etl::array ntc_temp(ntc_sensor_3950_50K);
         etl::array ntc_desc(ntc_sensor_3950_50K_desc);
         pgm::array ntc_temp_p(ntc_sensor_3950_50K_p);
+        etl::vector ntc_temp_v(ntc_sensor_3950_50K);
 
         /////////////////////////////////////////////////////////
         //  ascending raw mode
 
         // Обрезка по границам с интерполяцией между значениями
-        etl::lookup lt_ntc3950(ntc_temp);
+        etl::lookup <float, float, etl::array<lookup_t<float, float>>> lt_ntc3950 (ntc_temp);
         TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(1500), 1.5), true, "lt_ntc3950.raw_to_value(1500)");
         TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(500), 1.0), true, "lt_ntc3950.raw_to_value(500)");
         TEST_EQUAL(math::equals(lt_ntc3950.raw_to_value(3500), 3.0), true, "lt_ntc3950.raw_to_value(3500)");
 
         // С экстаполяцией за пределами крайних значений
-        etl::lookup <float, float, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE> lt_ntc3950_extra(ntc_temp);
+        etl::array_lookup <float, float> lt_ntc3950_extra(ntc_temp, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE);
         TEST_EQUAL(math::equals(lt_ntc3950_extra.raw_to_value(1500), 1.5), true, "lt_ntc3950_extra.raw_to_value(1500)");
         TEST_EQUAL(math::equals(lt_ntc3950_extra.raw_to_value(500), 0.5), true, "lt_ntc3950_extra.raw_to_value(500)");
         TEST_EQUAL(math::equals(lt_ntc3950_extra.raw_to_value(3500), 3.5), true, "lt_ntc3950_extra.raw_to_value(3500)");
 
         // Ближайшее значение без интеполяции с обрезкой
-        etl::lookup <float, float, lookup_mode::NEAREST, bounds_mode::CLAMP> lt_ntc3950_near(ntc_temp);
+        auto lt_ntc3950_near = etl::make_lookup<float, float>(ntc_temp, lookup_mode::NEAREST, bounds_mode::CLAMP);
         TEST_EQUAL(math::equals(lt_ntc3950_near.raw_to_value(1500), 1.0), true, "lt_ntc3950_near.raw_to_value(1500)");
         TEST_EQUAL(math::equals(lt_ntc3950_near.raw_to_value(1501), 2.0), true, "lt_ntc3950_near.raw_to_value(1501)");
         TEST_EQUAL(math::equals(lt_ntc3950_near.raw_to_value(500), 1.0), true, "lt_ntc3950_near.raw_to_value(500)");
@@ -356,25 +362,223 @@ namespace etl
         //  descending raw mode
 
         // Обрезка по границам с интерполяцией между значениями
-        etl::lookup lt_ntc_desc(ntc_desc);
+        etl::lookup <float, float, etl::array<lookup_t<float, float>>> lt_ntc_desc(ntc_desc);
         TEST_EQUAL(math::equals(lt_ntc_desc.raw_to_value(1500), 2.5), true, "lt_ntc_desc.raw_to_value(1500)");
         TEST_EQUAL(math::equals(lt_ntc_desc.raw_to_value(500), 3.0), true, "lt_ntc_desc.raw_to_value(500)");
         TEST_EQUAL(math::equals(lt_ntc_desc.raw_to_value(3500), 1.0), true, "lt_ntc_desc.raw_to_value(3500)");
 
         // С экстаполяцией за пределами крайних значений
-        etl::lookup <float, float, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE> lt_ntc_desc_extra(ntc_desc);
+        etl::array_lookup <float, float> lt_ntc_desc_extra(ntc_desc, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE);
         TEST_EQUAL(math::equals(lt_ntc_desc_extra.raw_to_value(1500), 2.5), true, "lt_ntc_desc_extra.raw_to_value(1500)");
         TEST_EQUAL(math::equals(lt_ntc_desc_extra.raw_to_value(500), 3.5), true, "lt_ntc_desc_extra.raw_to_value(500)");
         TEST_EQUAL(math::equals(lt_ntc_desc_extra.raw_to_value(3500), 0.5), true, "lt_ntc_desc_extra.raw_to_value(3500)");
 
         // Ближайшее значение без интеполяции с обрезкой
-        etl::lookup <float, float, lookup_mode::NEAREST, bounds_mode::CLAMP> lt_ntc_desc_near(ntc_desc);
+        auto lt_ntc_desc_near = etl::make_lookup<float, float>(ntc_desc, lookup_mode::NEAREST, bounds_mode::CLAMP);
         TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(1500), 2.0), true, "lt_ntc_desc_near.raw_to_value(1500)");
         TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(1499), 3.0), true, "lt_ntc_desc_near.raw_to_value(1499)");
         TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(1501), 2.0), true, "lt_ntc_desc_near.raw_to_value(1501)");
         TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(500), 3.0), true, "lt_ntc_desc_near.raw_to_value(500)");
         TEST_EQUAL(math::equals(lt_ntc_desc_near.raw_to_value(3500), 1.0), true, "lt_ntc_desc_near.raw_to_value(3500)");
+
+        /////////////////////////////////////////////////////////
+        //  ascending raw mode PROGMEM version
+
+        // Обрезка по границам с интерполяцией между значениями
+        etl::lookup <float, float, pgm::array<lookup_t<float, float>>> lt_ntc3950_p (ntc_temp_p);
+        TEST_EQUAL(math::equals(lt_ntc3950_p.raw_to_value(1500), 1.5), true, "lt_ntc3950_p.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_p.raw_to_value(500), 1.0), true, "lt_ntc3950_p.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_p.raw_to_value(3500), 3.0), true, "lt_ntc3950_p.raw_to_value(3500)");
+
+        // С экстаполяцией за пределами крайних значений
+        etl::pgm_lookup <float, float> lt_ntc3950_extra_p(ntc_temp_p, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE);
+        TEST_EQUAL(math::equals(lt_ntc3950_extra_p.raw_to_value(1500), 1.5), true, "lt_ntc3950_extra_p.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_extra_p.raw_to_value(500), 0.5), true, "lt_ntc3950_extra_p.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_extra_p.raw_to_value(3500), 3.5), true, "lt_ntc3950_extra_p.raw_to_value(3500)");
+
+        // Ближайшее значение без интеполяции с обрезкой
+        auto lt_ntc3950_near_p = etl::make_lookup<float, float>(ntc_temp_p, lookup_mode::NEAREST, bounds_mode::CLAMP);
+        TEST_EQUAL(math::equals(lt_ntc3950_near_p.raw_to_value(1500), 1.0), true, "lt_ntc3950_near_p.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near_p.raw_to_value(1501), 2.0), true, "lt_ntc3950_near_p.raw_to_value(1501)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near_p.raw_to_value(500), 1.0), true, "lt_ntc3950_near_p.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near_p.raw_to_value(3500), 3.0), true, "lt_ntc3950_near_p.raw_to_value(3500)");
+
+        /////////////////////////////////////////////////////////
+        //  ascending raw mode, VECTOR vesrion
+
+        // Обрезка по границам с интерполяцией между значениями
+        etl::lookup <float, float, etl::vector<lookup_t<float, float>>> lt_ntc3950_v (ntc_temp_v);
+        TEST_EQUAL(math::equals(lt_ntc3950_v.raw_to_value(1500), 1.5), true, "lt_ntc3950_v.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_v.raw_to_value(500), 1.0), true, "lt_ntc3950_v.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_v.raw_to_value(3500), 3.0), true, "lt_ntc3950_v.raw_to_value(3500)");
+
+        // С экстаполяцией за пределами крайних значений
+        etl::vector_lookup <float, float> lt_ntc3950_extra_v(ntc_temp_v, lookup_mode::INTERPOLATE, bounds_mode::EXTRAPOLATE);
+        TEST_EQUAL(math::equals(lt_ntc3950_extra_v.raw_to_value(1500), 1.5), true, "lt_ntc3950_extra_v.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_extra_v.raw_to_value(500), 0.5), true, "lt_ntc3950_extra_v.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_extra_v.raw_to_value(3500), 3.5), true, "lt_ntc3950_extra_v.raw_to_value(3500)");
+
+        // Ближайшее значение без интеполяции с обрезкой
+        auto lt_ntc3950_near_v = etl::make_lookup<float, float>(ntc_temp_v, lookup_mode::NEAREST, bounds_mode::CLAMP);
+        TEST_EQUAL(math::equals(lt_ntc3950_near_v.raw_to_value(1500), 1.0), true, "lt_ntc3950_near_v.raw_to_value(1500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near_v.raw_to_value(1501), 2.0), true, "lt_ntc3950_near_v.raw_to_value(1501)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near_v.raw_to_value(500), 1.0), true, "lt_ntc3950_near_v.raw_to_value(500)");
+        TEST_EQUAL(math::equals(lt_ntc3950_near_v.raw_to_value(3500), 3.0), true, "lt_ntc3950_near_v.raw_to_value(3500)");
         
+        return ""; // no errors 
+    }
+
+    String test_color_lookup() 
+    {
+    //    Serial.println("=== Testing Color Lookup ===");
+        
+        // Таблица соответствия температуры цвету
+        const etl::lookup_t<int, etl::color_t> temperature_colors[] = {
+            {-20, etl::color_t::BLUE()},        // -20°C: синий
+            {0,   etl::color_t::WHITE()},       // 0°C: белый
+            {20,  etl::color_t::GREEN()},       // 20°C: зеленый
+            {30,  etl::color_t::YELLOW()},      // 30°C: желтый
+            {70,  etl::color_t::RED()},         // 70°C: красный
+            {100, etl::color_t::MAROON()}       // 100°C: бордовый
+        };
+        
+        // Создаем lookup для цветов
+        auto color_lookup = etl::make_color_lookup<int>(temperature_colors);
+        
+        // Тестируем ключевые точки
+        //Serial.println("Key points:");
+        //Serial.println("-20°C: " + color_lookup.raw_to_value(-20).to_string()); // Должен быть синий
+        TEST_EQUAL("-20°C: " + color_lookup.raw_to_value(-20).to_string(), "-20°C: RGB(0,0,255)", "Должен быть синий");
+        // Serial.println("0°C: " + color_lookup.raw_to_value(0).to_string());     // Должен быть белый
+        TEST_EQUAL("0°C: " + color_lookup.raw_to_value(0).to_string(), "0°C: RGB(255,255,255", "Должен быть белый");
+        //Serial.println("20°C: " + color_lookup.raw_to_value(20).to_string());   // Должен быть зеленый
+        TEST_EQUAL("20°C: " + color_lookup.raw_to_value(20).to_string(), "20°C: RGB(0,255,0)", "Должен быть зеленый");
+        //Serial.println("30°C: " + color_lookup.raw_to_value(30).to_string());   // Должен быть желтый
+        TEST_EQUAL("30°C: " + color_lookup.raw_to_value(30).to_string(), "30°C: RGB(255,255,0)", "Должен быть желтый");
+        //Serial.println("70°C: " + color_lookup.raw_to_value(70).to_string());   // Должен быть красный
+        TEST_EQUAL("70°C: " + color_lookup.raw_to_value(70).to_string(), "70°C: RGB(255,0,0)", "Должен быть красный");
+        // Serial.println("100°C: " + color_lookup.raw_to_value(100).to_string()); // Должен быть бордовый
+        TEST_EQUAL("100°C: " + color_lookup.raw_to_value(100).to_string(), "100°C: RGB(128,0,0)", "Должен быть бордовый");
+        
+        // Тестируем интерполяцию между точками
+        // Serial.println("\nInterpolated points:");
+        
+        // Между -20°C (синий) и 0°C (белый)
+        auto color_m10 = color_lookup.raw_to_value(-10);
+        Serial.println("-10°C: " + color_m10.to_string()); // Должен быть светло-синий
+        
+        // Между 0°C (белый) и 20°C (зеленый)
+        auto color_10 = color_lookup.raw_to_value(10);
+        Serial.println("10°C: " + color_10.to_string()); // Должен быть светло-зеленый
+        
+        // Между 20°C (зеленый) и 30°C (желтый)
+        auto color_25 = color_lookup.raw_to_value(25);
+        Serial.println("25°C: " + color_25.to_string()); // Должен быть желто-зеленый
+        
+        // Между 30°C (желтый) и 70°C (красный)
+        auto color_50 = color_lookup.raw_to_value(50);
+        Serial.println("50°C: " + color_50.to_string()); // Должен быть оранжевый
+        
+        // Между 70°C (красный) и 100°C (бордовый)
+        auto color_85 = color_lookup.raw_to_value(85);
+        Serial.println("85°C: " + color_85.to_string()); // Должен быть темно-красный
+        
+        // Тестируем граничные значения
+        Serial.println("\nBoundary values:");
+        auto color_low = color_lookup.raw_to_value(-30);  // Ниже минимального
+        auto color_high = color_lookup.raw_to_value(150); // Выше максимального
+        Serial.println("-30°C: " + color_low.to_string());  // Должен быть синий (clamp)
+        Serial.println("150°C: " + color_high.to_string()); // Должен быть бордовый (clamp)
+        
+        // Тестируем разные режимы
+        Serial.println("\nDifferent modes:");
+        
+        // Режим ближайшего значения
+        color_lookup.set_lookup_mode(etl::lookup_mode::NEAREST);
+        auto color_12_nearest = color_lookup.raw_to_value(12);
+        Serial.println("12°C (nearest): " + color_12_nearest.to_string()); // Ближе к 10°C или 20°C
+        
+        auto color_28_nearest = color_lookup.raw_to_value(28);
+        Serial.println("28°C (nearest): " + color_28_nearest.to_string()); // Ближе к 20°C или 30°C
+        
+        // Возвращаем режим интерполяции
+        color_lookup.set_lookup_mode(etl::lookup_mode::INTERPOLATE);
+        
+        // Тестируем экстраполяцию
+        color_lookup.set_bounds_mode(etl::bounds_mode::EXTRAPOLATE);
+        auto color_m30_extra = color_lookup.raw_to_value(-30);
+        auto color_150_extra = color_lookup.raw_to_value(150);
+        Serial.println("-30°C (extrapolate): " + color_m30_extra.to_string());
+        Serial.println("150°C (extrapolate): " + color_150_extra.to_string());
+
+        /* Output
+        === Testing Color Lookup ===
+        Key points:
+        -20°C: RGB(0,0,255)
+        0°C: RGB(255,255,255
+        20°C: RGB(0,255,0)
+        30°C: RGB(255,255,0)
+        70°C: RGB(255,0,0)
+        100°C: RGB(128,0,0)
+
+        Interpolated points:
+        -10°C: RGB(127,127,255
+        10°C: RGB(127,255,127
+        25°C: RGB(127,255,0)
+        50°C: RGB(255,127,0)
+        85°C: RGB(191,0,0)
+
+        Boundary values:
+        -30°C: RGB(0,0,255)
+        150°C: RGB(128,0,0)
+
+        Different modes:
+        12°C (nearest): RGB(0,255,0)
+        28°C (nearest): RGB(255,255,0)
+        -30°C (extrapolate): RGB(0,0,255)
+        150°C (extrapolate): RGB(0,0,0)
+        */
+
+        return ""; // no errors 
+    }
+
+    // Функция для визуальной проверки (выводит цвета в последовательном виде)
+    String test_color_spectrum() 
+    {
+        //Serial.println("\n=== Color Spectrum ===");        
+        const etl::lookup_t<int, etl::color_t> temperature_colors[] = {
+            {-20, etl::color_t(0, 0, 255)},     // Синий
+            {0,   etl::color_t(255, 255, 255)}, // Белый
+            {20,  etl::color_t(0, 255, 0)},     // Зеленый
+            {30,  etl::color_t(255, 255, 0)},   // Желтый
+            {70,  etl::color_t(255, 0, 0)},     // Красный
+            {100, etl::color_t(128, 0, 0)}      // Бордовый
+        };
+        
+        auto spectrum_lookup = etl::make_color_lookup<int>(temperature_colors);
+        
+        // Выводим спектр от -20 до 100 с шагом 10
+        etl::vector<String> results_spectr;
+        for (int temp = -20; temp <= 100; temp += 10) {
+            auto color = spectrum_lookup.raw_to_value(temp);
+            results_spectr.push_back( etl::tools::text::printf_format("Temp %3d°C: %s\n", temp, color.to_string().c_str()) );
+        //    Serial.printf("Temp %3d°C: %s\n", temp, color.to_string().c_str());
+        }
+        TEST_EQUAL(results_spectr.size(), 13, "results_spectr.size()");
+        TEST_EQUAL(results_spectr[0], "Temp -20°C: RGB(0,0,255)\n", "results_spectr[0]");
+        TEST_EQUAL(results_spectr[1], "Temp -10°C: RGB(127,127,255\n", "results_spectr[1]");
+        TEST_EQUAL(results_spectr[2], "Temp   0°C: RGB(255,255,255\n", "results_spectr[2]");
+        TEST_EQUAL(results_spectr[3], "Temp  10°C: RGB(127,255,127\n", "results_spectr[3]");
+        TEST_EQUAL(results_spectr[4], "Temp  20°C: RGB(0,255,0)\n", "results_spectr[4]");
+        TEST_EQUAL(results_spectr[5], "Temp  30°C: RGB(255,255,0)\n", "results_spectr[5]");
+        TEST_EQUAL(results_spectr[6], "Temp  40°C: RGB(255,191,0)\n", "results_spectr[6]");
+        TEST_EQUAL(results_spectr[7], "Temp  50°C: RGB(255,127,0)\n", "results_spectr[7]");
+        TEST_EQUAL(results_spectr[8], "Temp  60°C: RGB(255,63,0)\n", "results_spectr[8]");
+        TEST_EQUAL(results_spectr[9], "Temp  70°C: RGB(255,0,0)\n", "results_spectr[9]");
+        TEST_EQUAL(results_spectr[10], "Temp  80°C: RGB(212,0,0)\n", "results_spectr[10]");
+        TEST_EQUAL(results_spectr[11], "Temp  90°C: RGB(170,0,0)\n", "results_spectr[11]");
+        TEST_EQUAL(results_spectr[12], "Temp 100°C: RGB(128,0,0)\n", "results_spectr[12]");
+
         return ""; // no errors 
     }
 
@@ -534,6 +738,7 @@ namespace etl
         // -------------------------------------------------------------------
     }
 
-}
+}// namespace unittest
+}// namespace etl
 
 

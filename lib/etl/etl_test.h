@@ -3,8 +3,9 @@
 #pragma once 
 #include "Arduino.h"
 
-namespace etl
-{
+namespace etl {
+namespace unittest {
+
     bool test_all(Stream& trace);
     void test_result(Stream& trace, const String& title, const String& result);
 
@@ -17,8 +18,12 @@ namespace etl
     String test_array();
     String test_espnow();
     String test_lookup();
+    String test_color_lookup();
+    String test_color_spectrum();
 
     // проверка алгоритмов 
     void profiler_average_filter(Stream& trace);
     void profiler_lookup_table(Stream& trace);
-}
+
+} //namespace unittest
+} //namespace etl
