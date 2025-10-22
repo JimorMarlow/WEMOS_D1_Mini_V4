@@ -465,8 +465,9 @@ namespace unittest {
         
         // Между -20°C (синий) и 0°C (белый)
         auto color_m10 = color_lookup.raw_to_value(-10);
-        Serial.println("-10°C: " + color_m10.to_string()); // Должен быть светло-синий
-        
+        //Serial.println("-10°C: " + color_m10.to_string()); // Должен быть светло-синий
+        TEST_EQUAL(color_m10, etl::color_t(127,127,255), "Должен быть светло-синий");
+
         // Между 0°C (белый) и 20°C (зеленый)
         auto color_10 = color_lookup.raw_to_value(10);
         Serial.println("10°C: " + color_10.to_string()); // Должен быть светло-зеленый
