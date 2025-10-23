@@ -1,6 +1,9 @@
 {
     "files.associations": {
         "optional": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "array": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp"
     }
 }

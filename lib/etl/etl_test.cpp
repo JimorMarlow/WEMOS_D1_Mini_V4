@@ -12,6 +12,7 @@
 #include "filter/exponential.h"
 #include "filter/median.h"
 #include "sensor/temperature.h"
+#include "sensor/ntc_temperature_3950_50K_table.h"
 #include "tools/stop_watch.h"
 #include "tools/strings.h"
 #include "esp_manager/esp_manager.h"
@@ -48,6 +49,8 @@ namespace unittest {
      
     //    profiler_average_filter(trace);
     //    profiler_lookup_table(trace);
+    //    profiler_color_tds(trace);
+    //    profiler_lookup_ntc(trace);
 
         return true;
     }
@@ -445,101 +448,62 @@ namespace unittest {
         // Создаем lookup для цветов
         auto color_lookup = etl::make_color_lookup<int>(temperature_colors);
         
-        // Тестируем ключевые точки
-        //Serial.println("Key points:");
-        //Serial.println("-20°C: " + color_lookup.raw_to_value(-20).to_string()); // Должен быть синий
+        // Тестируем ключевые точки        //Serial.println("Key points:");
         TEST_EQUAL("-20°C: " + color_lookup.raw_to_value(-20).to_string(), "-20°C: RGB(0,0,255)", "Должен быть синий");
-        // Serial.println("0°C: " + color_lookup.raw_to_value(0).to_string());     // Должен быть белый
-        TEST_EQUAL("0°C: " + color_lookup.raw_to_value(0).to_string(), "0°C: RGB(255,255,255", "Должен быть белый");
-        //Serial.println("20°C: " + color_lookup.raw_to_value(20).to_string());   // Должен быть зеленый
+        TEST_EQUAL("0°C: " + color_lookup.raw_to_value(0).to_string(), "0°C: RGB(255,255,255)", "Должен быть белый");
         TEST_EQUAL("20°C: " + color_lookup.raw_to_value(20).to_string(), "20°C: RGB(0,255,0)", "Должен быть зеленый");
-        //Serial.println("30°C: " + color_lookup.raw_to_value(30).to_string());   // Должен быть желтый
         TEST_EQUAL("30°C: " + color_lookup.raw_to_value(30).to_string(), "30°C: RGB(255,255,0)", "Должен быть желтый");
-        //Serial.println("70°C: " + color_lookup.raw_to_value(70).to_string());   // Должен быть красный
         TEST_EQUAL("70°C: " + color_lookup.raw_to_value(70).to_string(), "70°C: RGB(255,0,0)", "Должен быть красный");
-        // Serial.println("100°C: " + color_lookup.raw_to_value(100).to_string()); // Должен быть бордовый
         TEST_EQUAL("100°C: " + color_lookup.raw_to_value(100).to_string(), "100°C: RGB(128,0,0)", "Должен быть бордовый");
         
-        // Тестируем интерполяцию между точками
-        // Serial.println("\nInterpolated points:");
+        // Тестируем интерполяцию между точками       // Serial.println("\nInterpolated points:");
         
         // Между -20°C (синий) и 0°C (белый)
-        auto color_m10 = color_lookup.raw_to_value(-10);
-        //Serial.println("-10°C: " + color_m10.to_string()); // Должен быть светло-синий
-        TEST_EQUAL(color_m10, etl::color_t(127,127,255), "Должен быть светло-синий");
+        auto color_m10 = color_lookup.raw_to_value(-10);    //Serial.println("-10°C: " + color_m10.to_string()); // Должен быть светло-синий
+        TEST_EQUAL(color_m10, etl::color_t(127,127,255), "color_m10 Должен быть светло-синий");
 
         // Между 0°C (белый) и 20°C (зеленый)
-        auto color_10 = color_lookup.raw_to_value(10);
-        Serial.println("10°C: " + color_10.to_string()); // Должен быть светло-зеленый
+        auto color_10 = color_lookup.raw_to_value(10);      //Serial.println("10°C: " + color_10.to_string()); // Должен быть светло-зеленый
+        TEST_EQUAL(color_10, etl::color_t(127,255,127), "color_10 Должен быть светло-зеленый");
         
         // Между 20°C (зеленый) и 30°C (желтый)
-        auto color_25 = color_lookup.raw_to_value(25);
-        Serial.println("25°C: " + color_25.to_string()); // Должен быть желто-зеленый
+        auto color_25 = color_lookup.raw_to_value(25);      //Serial.println("25°C: " + color_25.to_string()); // Должен быть желто-зеленый
+        TEST_EQUAL(color_25, etl::color_t(127,255,0), "color_25 Должен быть желто-зеленый");
         
         // Между 30°C (желтый) и 70°C (красный)
-        auto color_50 = color_lookup.raw_to_value(50);
-        Serial.println("50°C: " + color_50.to_string()); // Должен быть оранжевый
+        auto color_50 = color_lookup.raw_to_value(50);      // Serial.println("50°C: " + color_50.to_string()); // Должен быть оранжевый
+        TEST_EQUAL(color_50, etl::color_t(255,127,0), "color_50 Должен быть оранжевый");
         
         // Между 70°C (красный) и 100°C (бордовый)
-        auto color_85 = color_lookup.raw_to_value(85);
-        Serial.println("85°C: " + color_85.to_string()); // Должен быть темно-красный
+        auto color_85 = color_lookup.raw_to_value(85);      //Serial.println("85°C: " + color_85.to_string()); // Должен быть темно-красный
+        TEST_EQUAL(color_85, etl::color_t(191,0,0), "color_85 Должен быть темно-красный");
         
-        // Тестируем граничные значения
-        Serial.println("\nBoundary values:");
-        auto color_low = color_lookup.raw_to_value(-30);  // Ниже минимального
-        auto color_high = color_lookup.raw_to_value(150); // Выше максимального
-        Serial.println("-30°C: " + color_low.to_string());  // Должен быть синий (clamp)
-        Serial.println("150°C: " + color_high.to_string()); // Должен быть бордовый (clamp)
+        // Тестируем граничные значения        // Serial.println("\nBoundary values:");
+        auto color_low = color_lookup.raw_to_value(-30);  // Ниже минимального  // Serial.println("-30°C: " + color_low.to_string());  // Должен быть синий (clamp)
+        TEST_EQUAL(color_low, etl::color_t(0,0,255), "color_low Ниже минимального");
+        auto color_high = color_lookup.raw_to_value(150); // Выше максимального // Serial.println("150°C: " + color_high.to_string()); // Должен быть бордовый (clamp)
+        TEST_EQUAL(color_high, etl::color_t(128,0,0), "color_high Выше максимального");
         
-        // Тестируем разные режимы
-        Serial.println("\nDifferent modes:");
+        // Тестируем разные режимы      //Serial.println("\nDifferent modes:");
         
         // Режим ближайшего значения
         color_lookup.set_lookup_mode(etl::lookup_mode::NEAREST);
-        auto color_12_nearest = color_lookup.raw_to_value(12);
-        Serial.println("12°C (nearest): " + color_12_nearest.to_string()); // Ближе к 10°C или 20°C
+        auto color_12_nearest = color_lookup.raw_to_value(12);  // Serial.println("12°C (nearest): " + color_12_nearest.to_string()); // Ближе к 10°C или 20°C
+        TEST_EQUAL(color_12_nearest, etl::color_t(0,255,0), "12°C (nearest): Ближе к 10°C или 20°C");
         
-        auto color_28_nearest = color_lookup.raw_to_value(28);
-        Serial.println("28°C (nearest): " + color_28_nearest.to_string()); // Ближе к 20°C или 30°C
+        auto color_28_nearest = color_lookup.raw_to_value(28);  // Serial.println("28°C (nearest): " + color_28_nearest.to_string()); // Ближе к 20°C или 30°C
+        TEST_EQUAL(color_28_nearest, etl::color_t(255,255,0), "28°C (nearest): Ближе к 20°C или 30°C");
         
         // Возвращаем режим интерполяции
         color_lookup.set_lookup_mode(etl::lookup_mode::INTERPOLATE);
         
         // Тестируем экстраполяцию
         color_lookup.set_bounds_mode(etl::bounds_mode::EXTRAPOLATE);
-        auto color_m30_extra = color_lookup.raw_to_value(-30);
+        auto color_m30_extra = color_lookup.raw_to_value(-30);  
+        TEST_EQUAL(color_m30_extra, etl::color_t(0,0,255), "-30°C (extrapolate)");
         auto color_150_extra = color_lookup.raw_to_value(150);
-        Serial.println("-30°C (extrapolate): " + color_m30_extra.to_string());
-        Serial.println("150°C (extrapolate): " + color_150_extra.to_string());
-
-        /* Output
-        === Testing Color Lookup ===
-        Key points:
-        -20°C: RGB(0,0,255)
-        0°C: RGB(255,255,255
-        20°C: RGB(0,255,0)
-        30°C: RGB(255,255,0)
-        70°C: RGB(255,0,0)
-        100°C: RGB(128,0,0)
-
-        Interpolated points:
-        -10°C: RGB(127,127,255
-        10°C: RGB(127,255,127
-        25°C: RGB(127,255,0)
-        50°C: RGB(255,127,0)
-        85°C: RGB(191,0,0)
-
-        Boundary values:
-        -30°C: RGB(0,0,255)
-        150°C: RGB(128,0,0)
-
-        Different modes:
-        12°C (nearest): RGB(0,255,0)
-        28°C (nearest): RGB(255,255,0)
-        -30°C (extrapolate): RGB(0,0,255)
-        150°C (extrapolate): RGB(0,0,0)
-        */
-
+        TEST_EQUAL(color_150_extra, etl::color_t(0,0,0), "150°C (extrapolate)");
+        
         return ""; // no errors 
     }
 
@@ -567,9 +531,9 @@ namespace unittest {
         }
         TEST_EQUAL(results_spectr.size(), 13, "results_spectr.size()");
         TEST_EQUAL(results_spectr[0], "Temp -20°C: RGB(0,0,255)\n", "results_spectr[0]");
-        TEST_EQUAL(results_spectr[1], "Temp -10°C: RGB(127,127,255\n", "results_spectr[1]");
-        TEST_EQUAL(results_spectr[2], "Temp   0°C: RGB(255,255,255\n", "results_spectr[2]");
-        TEST_EQUAL(results_spectr[3], "Temp  10°C: RGB(127,255,127\n", "results_spectr[3]");
+        TEST_EQUAL(results_spectr[1], "Temp -10°C: RGB(127,127,255)\n", "results_spectr[1]");
+        TEST_EQUAL(results_spectr[2], "Temp   0°C: RGB(255,255,255)\n", "results_spectr[2]");
+        TEST_EQUAL(results_spectr[3], "Temp  10°C: RGB(127,255,127)\n", "results_spectr[3]");
         TEST_EQUAL(results_spectr[4], "Temp  20°C: RGB(0,255,0)\n", "results_spectr[4]");
         TEST_EQUAL(results_spectr[5], "Temp  30°C: RGB(255,255,0)\n", "results_spectr[5]");
         TEST_EQUAL(results_spectr[6], "Temp  40°C: RGB(255,191,0)\n", "results_spectr[6]");
@@ -608,7 +572,63 @@ namespace unittest {
         trace.print("TIME;\tus;\t"); 
         trace.println(stat_arr_mem.get_averate_time()); 
     }
+
+    void profiler_color_tds(Stream& trace)    
+    {
+        // Градиентные цвета для шкалы TDS значений (Total Dissolved Solids)
+        const etl::lookup_t<int, etl::color_t> tds_colors[] = {
+            {50,    etl::color_t(152, 211, 255)},   // Идеальная питьевая вода после обратного осмоса
+            {100,   etl::color_t(2, 147, 128)},     // Приемлимая питьевая вода
+            {200,   etl::color_t(82, 65, 255)},     // На грани допустимого
+            {300,   etl::color_t(150, 210, 0)},     // Неприятная вода из-под крана
+            {400,   etl::color_t(128, 123, 0)},     // Вода из минеральных источников
+            {500,   etl::color_t(148, 31, 1)},      // Максимальный уровень загрязнения
+            {600,   etl::color_t(51, 0, 0)}         // Опасность
+        };
+
+        auto spectrum_lookup = etl::make_color_lookup<int>(tds_colors);
+        etl::tools::stop_watch stat;
+
+        // Выводим спектр от -20 до 100 с шагом 10
+        Serial.println("TDS;\tRGB;\t");
+        for (int tds = 0; tds <= 650; tds++) 
+        {
+            stat.start();
+            auto color = spectrum_lookup.raw_to_value(tds);
+            stat.stop();
+            Serial.printf("%d;\t%s;\t\n", tds, color.to_hex_string().c_str());
+        }
+
+        trace.println();
+        trace.print("TIME;\tus;\t"); 
+        trace.println(stat.get_averate_time()); 
+        // ESP32C3:         TIME;   us;     15
+
+        /* Для проверки используются гугл таблицы
+        1. Откройте Google Таблицы, перейдите в меню Расширения → Apps Script
+        2. Вставьте такой скрипт:
+
+        function previewRGBColor() {
+            var sheet = SpreadsheetApp.getActiveSheet();
+            var lastRow = sheet.getLastRow();
+            for (var i = 1; i <= lastRow; i++) {
+                var hex = sheet.getRange(i, 2).getValue();
+                sheet.getRange(i, 3).setBackground(hex);
+            }
+        }
+         
+        3. Для запуска вручную:
+            На панели скрипта выберите функцию previewRGBColor и нажмите ► "Выполнить".
+            Разрешите доступ к вашему аккаунту (первый запуск требует подтверждения).
+        4. После запуска скрипта столбец D (Preview) окрасится в нужный цвет по значениям R/G/B.
+
+        Файл с результатами: docs\result_profiler_color_tds.xlsx
+        */
+    }
     
+    //////////////////////////////////////////////////////////////////////
+    // Фильры 
+
     // Функция для генерации редких выбросов
     float add_rare_noise(float base_value, int iteration) {
         // Генерируем выбросы примерно каждые 20-30 итераций
@@ -737,6 +757,27 @@ namespace unittest {
         // -------- ESP32 C3 MINI --------------------------------------------
         // TIME;   us;     3;      7;      3;      us;     5;      7;      3
         // -------------------------------------------------------------------
+    }
+
+    void profiler_lookup_ntc(Stream& trace)    // Для термодатчики ntc 3950 50K проверка перевода сопротивления в градусы цельсия
+    {
+        pgm::array pgm_3950_50K(ntc_temperature_sensor_3950_50K_p);
+        auto resistance_lookup = etl::pgm_lookup<float, float>(pgm_3950_50K, etl::lookup_mode::INTERPOLATE, etl::bounds_mode::EXTRAPOLATE);
+        etl::tools::stop_watch stat;
+        // Выводим темпратуру по сопротивлению
+        Serial.println("R;\tT;\t");
+        for (float r = pgm_3950_50K[0].raw; r >= pgm_3950_50K[pgm_3950_50K.size()-1].raw - 1.0; r-=0.3) 
+        {
+            stat.start();
+            float t = resistance_lookup.raw_to_value(r);
+            stat.stop();
+            Serial.printf("%.3f;\t%0.2f;\t\n", r, t);
+        }
+
+        trace.println();
+        trace.print("TIME;\tus;\t"); 
+        trace.println(stat.get_averate_time()); 
+        // ESP32C3:         TIME;   us;     15
     }
 
 }// namespace unittest

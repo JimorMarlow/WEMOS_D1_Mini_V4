@@ -44,7 +44,7 @@ private:
     Container table_;
     lookup_mode mode_ = lookup_mode::INTERPOLATE;
     bounds_mode bounds_ = bounds_mode::CLAMP;
-    
+        
     // Определяем направление сортировки
     bool is_ascending() const {
         if (table_.size() < 2) return true;

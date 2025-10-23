@@ -70,8 +70,14 @@ public:
     
     // Методы для удобства
     String to_string() const {
-        char buffer[16];
+        char buffer[20];
         snprintf(buffer, sizeof(buffer), "RGB(%d,%d,%d)", r, g, b);
+        return String(buffer);
+    }
+
+    String to_hex_string() const {
+        char buffer[16];
+        snprintf(buffer, sizeof(buffer), "#%02X%02X%02X", r, g, b);
         return String(buffer);
     }
     

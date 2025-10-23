@@ -20,10 +20,12 @@ namespace unittest {
     String test_lookup();
     String test_color_lookup();
     String test_color_spectrum();
-
+    
     // проверка алгоритмов 
     void profiler_average_filter(Stream& trace);
     void profiler_lookup_table(Stream& trace);
+    void profiler_color_tds(Stream& trace);    // Градиентные цвета для таблицы TDS значений
+    void profiler_lookup_ntc(Stream& trace);    // Для термодатчики ntc 3950 50K проверка перевода сопротивления в градусы цельсия
 
 } //namespace unittest
 } //namespace etl
