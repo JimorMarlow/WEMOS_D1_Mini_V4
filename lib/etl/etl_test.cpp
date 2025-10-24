@@ -8,6 +8,7 @@
 #include "etl_utility.h"
 #include "etl_lookup.h"
 #include "etl_color.h"
+#include "etl_algorythm.h"
 #include "filter/moving_average.h"
 #include "filter/exponential.h"
 #include "filter/median.h"
@@ -39,6 +40,7 @@ namespace unittest {
         test_result(trace, "test_lookup", test_lookup());
         test_result(trace, "test_color_lookup", test_color_lookup());
         test_result(trace, "test_color_spectrum", test_color_spectrum());
+        test_result(trace, "test_algorythm", test_algorythm());
 
         test_result(trace, "test_empty", test_empty());
         
@@ -546,7 +548,7 @@ namespace unittest {
 
         return ""; // no errors 
     }
-
+ 
     void profiler_lookup_table(Stream& trace)
     {
         Serial.println();
@@ -624,6 +626,74 @@ namespace unittest {
 
         Файл с результатами: docs\result_profiler_color_tds.xlsx
         */
+    }
+
+    const int test_pgm[] PROGMEM = {0, 1, 2, 3, 4, 5}; 
+        
+    String test_algorythm()
+    {
+        // Создание контейнеров
+        int test_arr[] = {0, 1, 2, 3, 4, 5}; 
+        etl::array<int> arr = test_arr;
+        etl::vector<int> vec = {10, 20, 30, 40, 50};
+        pgm::array<int> pgm = test_pgm;
+        
+        // for_each с лямбдой
+        String for_each_array;
+        etl::for_each(arr, [&for_each_array](int x) {
+            for_each_array += String(x) + String(" ");
+        });
+        TEST_EQUAL(for_each_array, "0 1 2 3 4 5 ", "for_each_array");
+        
+        String for_each_pgm;
+        etl::for_each(pgm, [&for_each_pgm](int x) {
+            for_each_pgm += String(x) + String(" ");
+        });
+        TEST_EQUAL(for_each_pgm, "0 1 2 3 4 5 ", "for_each_pgm");
+        
+        // find_if с лямбдой
+        auto found = etl::find_if(arr, [](int x) { return x > 3; });
+        TEST_NOT_EQUAL(found, arr.end(), "find_if(arr, x > 3)");
+        TEST_EQUAL(*found, 4, "find_if(arr, x > 3) = 4");
+        
+        // accumulate
+        int sum = etl::accumulate(arr, 0);  // 15
+        TEST_EQUAL(sum, (0+1+2+3+4+5), "accumulate sum(arr) == 15");
+        
+        int product = etl::accumulate(vec, 1, [](int a, int b) { return a * b; });  // 12000000
+        TEST_EQUAL(product, (10*20*30*40*50), "accumulate product(vec) == 12000000");
+        
+        // Работа с vector
+        vec.push_back(60);
+        vec.push_back(70);
+        
+        String for_each_vec = "Vector contents:";
+        etl::for_each(vec, [&for_each_vec](int x) {
+            for_each_vec += String(x)+ String(" ");
+        });
+        TEST_EQUAL(for_each_vec, "Vector contents:10 20 30 40 50 60 70 ", "for_each_vec");
+        
+        // Поиск в векторе
+        auto vec_found = etl::find_if(vec, [](int x) { return x % 30 == 0; });
+        TEST_NOT_EQUAL(vec_found, vec.end(), "find_if(vec");
+        TEST_EQUAL(*vec_found, 30, "find_if(vec { return x % 30 == 0; }");
+
+        // fill
+        etl::fill(vec, 10);
+        TEST_EQUAL(vec.size(), 7, "vector fill 10 size");
+        etl::for_each(vec, [](const auto x) {
+            TEST_EQUAL(x, 10, "vector fill 10: error x = " + String(x));
+        });
+
+        // copy
+        etl::vector<int> vec2(vec.size());
+        etl::copy(etl::begin(vec), etl::end(vec), etl::begin(vec2));    // vec2 должен иметь размер, необходимый для копирования нужных данных
+        TEST_EQUAL(vec2.size(), 7, "vector copy size");
+        etl::for_each(vec2, [](const auto x) {
+            TEST_EQUAL(x, 10, "vector copy: error x = " + String(x));
+        });
+        
+        return "";
     }
     
     //////////////////////////////////////////////////////////////////////

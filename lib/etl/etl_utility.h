@@ -8,7 +8,29 @@
 
 namespace etl
 {
-    
+
+// begin/end для массивов
+template<typename T, size_t N>
+constexpr T* begin(T (&arr)[N]) {
+    return arr;
+}
+
+template<typename T, size_t N>
+constexpr T* end(T (&arr)[N]) {
+    return arr + N;
+}
+
+// begin/end для контейнеров
+template<typename Container>
+constexpr auto begin(Container& c) -> decltype(c.begin()) {
+    return c.begin();
+}
+
+template<typename Container>
+constexpr auto end(Container& c) -> decltype(c.end()) {
+    return c.end();
+}
+
 // Простой аналог std::move
 template<typename T>
 struct remove_reference {
