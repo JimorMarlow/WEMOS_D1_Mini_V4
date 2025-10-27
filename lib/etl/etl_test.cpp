@@ -501,7 +501,18 @@ namespace unittest {
         
         // Тестируем экстраполяцию
         color_lookup.set_bounds_mode(etl::bounds_mode::EXTRAPOLATE);
+        // 0°C: RGB(255,255,255)", "Должен быть белый"
+        // -20°C: RGB(0,0,255)", "Должен быть синий"
+        // -30 - должна быть экстраполяция 0,0,255
+        // -40 - должна быть экстраполяция 0,0,255
+        // auto color_m25_extra = color_lookup.raw_to_value(-25);  
         auto color_m30_extra = color_lookup.raw_to_value(-30);  
+        // auto color_m40_extra = color_lookup.raw_to_value(-40);  
+        // auto color_m45_extra = color_lookup.raw_to_value(-45);  
+        // Serial.println(color_m25_extra.to_string());
+        // Serial.println(color_m30_extra.to_string());
+        // Serial.println(color_m40_extra.to_string());
+        // Serial.println(color_m45_extra.to_string());
         TEST_EQUAL(color_m30_extra, etl::color_t(0,0,255), "-30°C (extrapolate)");
         auto color_150_extra = color_lookup.raw_to_value(150);
         TEST_EQUAL(color_150_extra, etl::color_t(0,0,0), "150°C (extrapolate)");
@@ -681,17 +692,19 @@ namespace unittest {
         // fill
         etl::fill(vec, 10);
         TEST_EQUAL(vec.size(), 7, "vector fill 10 size");
-        etl::for_each(vec, [](const auto x) {
-            TEST_EQUAL(x, 10, "vector fill 10: error x = " + String(x));
-        });
+        String fill_result;
+        etl::for_each(vec, [&fill_result](const auto x) {
+            if(x != 10) fill_result += "vector fill 10: error x = " + String(x) + String("\n");});
+        TEST_EQUAL(fill_result, "", fill_result);
 
         // copy
         etl::vector<int> vec2(vec.size());
         etl::copy(etl::begin(vec), etl::end(vec), etl::begin(vec2));    // vec2 должен иметь размер, необходимый для копирования нужных данных
         TEST_EQUAL(vec2.size(), 7, "vector copy size");
-        etl::for_each(vec2, [](const auto x) {
-            TEST_EQUAL(x, 10, "vector copy: error x = " + String(x));
-        });
+        String copy_result;
+        etl::for_each(vec2, [&copy_result](const auto x) {
+            if(x != 10) copy_result += "vector copy: error x = " + String(x) + String("\n");});
+        TEST_EQUAL(copy_result, "", copy_result);
         
         return "";
     }

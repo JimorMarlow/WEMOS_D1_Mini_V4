@@ -11,6 +11,7 @@
 // Визуализация - вывод спектра цветов для наглядной проверки
 
 #include "etl_lookup.h"
+#include "etl_utility.h"
 
 namespace etl {
 
@@ -24,29 +25,44 @@ public:
     
     // Конструктор из одного значения (серый цвет)
     constexpr explicit color_t(uint8_t gray) : r(gray), g(gray), b(gray) {}
+
+    // Минималистичный конструктор из строки "#RRGGBB"
+    color_t(const char* hex) : r(0), g(0), b(0) {
+        if (hex && strlen(hex) == 7 && hex[0] == '#') {
+            auto parse = [](char c) -> uint8_t {
+                if ('0' <= c && c <= '9') return c - '0';
+                if ('A' <= c && c <= 'F') return c - 'A' + 10;
+                if ('a' <= c && c <= 'f') return c - 'a' + 10;
+                return 0;
+            };
+            r = (parse(hex[1]) << 4) | parse(hex[2]);
+            g = (parse(hex[3]) << 4) | parse(hex[4]);
+            b = (parse(hex[5]) << 4) | parse(hex[6]);
+        }
+    }
     
     // Операторы для интерполяции
     color_t operator+(const color_t& other) const {
         return color_t(
-            static_cast<uint8_t>(r + other.r),
-            static_cast<uint8_t>(g + other.g),
-            static_cast<uint8_t>(b + other.b)
+            static_cast<uint8_t>(etl::clamp<int32_t>(int32_t(r) + int32_t(other.r), 0, 255)),
+            static_cast<uint8_t>(etl::clamp<int32_t>(int32_t(g) + int32_t(other.g), 0, 255)),
+            static_cast<uint8_t>(etl::clamp<int32_t>(int32_t(b) + int32_t(other.b), 0, 255))
         );
     }
     
     color_t operator-(const color_t& other) const {
         return color_t(
-            static_cast<uint8_t>(r - other.r),
-            static_cast<uint8_t>(g - other.g),
-            static_cast<uint8_t>(b - other.b)
+            static_cast<uint8_t>(etl::clamp<int32_t>(int32_t(r) - int32_t(other.r), 0, 255)),
+            static_cast<uint8_t>(etl::clamp<int32_t>(int32_t(g) - int32_t(other.g), 0, 255)),
+            static_cast<uint8_t>(etl::clamp<int32_t>(int32_t(b) - int32_t(other.b), 0, 255))
         );
     }
     
     color_t operator*(double ratio) const {
         return color_t(
-            static_cast<uint8_t>(r * ratio),
-            static_cast<uint8_t>(g * ratio),
-            static_cast<uint8_t>(b * ratio)
+            static_cast<uint8_t>(etl::clamp(r * ratio, 0.0, 255.0)),
+            static_cast<uint8_t>(etl::clamp(g * ratio, 0.0, 255.0)),
+            static_cast<uint8_t>(etl::clamp(b * ratio, 0.0, 255.0))
         );
     }
     
@@ -103,19 +119,27 @@ namespace etl {
 template <typename T, typename Container>
 class color_lookup : public lookup<T, color_t, Container> {
 protected:
-    color_t interpolate_custom(const lookup_t<T, color_t>& a, 
+    virtual color_t interpolate_custom(const lookup_t<T, color_t>& a, 
                               const lookup_t<T, color_t>& b, 
                               const T& raw) const override {
         if (a.raw == b.raw) return a.value;
         
-        double ratio = static_cast<double>(raw - a.raw) / static_cast<double>(b.raw - a.raw);
+        double ratio = static_cast<double>(static_cast<int32_t>(raw) - static_cast<int32_t>(a.raw)) 
+                     / static_cast<double>(static_cast<int32_t>(b.raw) - static_cast<int32_t>(a.raw));
+                     
+     //   ratio = static_cast<double>((raw - a.raw) / (b.raw - a.raw));
         
-        // Интерполируем каждую компоненту цвета отдельно
-        uint8_t r = static_cast<uint8_t>(a.value.r + ratio * (b.value.r - a.value.r));
-        uint8_t g = static_cast<uint8_t>(a.value.g + ratio * (b.value.g - a.value.g));
-        uint8_t b_val = static_cast<uint8_t>(a.value.b + ratio * (b.value.b - a.value.b));
+        // Безопасная интерполяция с clamp
+        auto interpolate_component = [ratio](uint8_t a_comp, uint8_t b_comp) -> uint8_t {
+            double result = a_comp + ratio * (static_cast<int32_t>(b_comp) - static_cast<int32_t>(a_comp));
+            return static_cast<uint8_t>(etl::clamp(result, 0.0, 255.0));
+        };
         
-        return color_t(r, g, b_val);
+        return color_t(
+            interpolate_component(a.value.r, b.value.r),
+            interpolate_component(a.value.g, b.value.g),
+            interpolate_component(a.value.b, b.value.b)
+        );
     }
 
 public:

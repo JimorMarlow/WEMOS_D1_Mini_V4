@@ -71,4 +71,16 @@ void swap(T& lhs, T&rhs)
     rhs = move(tm);
 }
 
+// Базовая версия clamp
+template<typename T>
+constexpr const T& clamp(const T& value, const T& low, const T& high) {
+    return (value < low) ? low : (value > high) ? high : value;
+}
+
+// Версия с компаратором
+template<typename T, typename Compare>
+constexpr const T& clamp(const T& value, const T& low, const T& high, Compare comp) {
+    return comp(value, low) ? low : comp(high, value) ? high : value;
+}
+
 }// namespace etl
