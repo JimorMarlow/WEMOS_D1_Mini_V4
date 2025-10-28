@@ -1,4 +1,7 @@
-# WEMOS D1 Mini V4.0.0
+##### Dependency: `ETL` (Embedded Template Library)
+![Version](https://img.shields.io/github/package-json/v/JimorMarlow/WEMOS_D1_Mini_V4)
+
+# WEMOS D1 Mini V4.0.0 
 
 https://sl.aliexpress.ru/p?key=EXsWVSI
 
@@ -111,3 +114,4 @@ https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter
 
 ## TODO
 [+] Перейти на GTimer https://github.com/GyverLibs/GTimer
+[+] Added version badge 
