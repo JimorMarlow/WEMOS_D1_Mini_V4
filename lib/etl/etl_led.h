@@ -3,6 +3,7 @@
 #include "Arduino.h"
 #include <GTimer.h>
 
+namespace etl {
 class LED
 {
 public:
@@ -30,3 +31,5 @@ protected:
 
     GTimer<millis> timer_Blink;                 // создать миллисекундный таймер для управления морганием
 };
+
+} //namespace etl

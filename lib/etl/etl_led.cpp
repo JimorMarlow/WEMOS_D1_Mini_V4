@@ -1,4 +1,6 @@
-#include "led.h"
+#include "etl_led.h"
+
+namespace etl {
 
 LED::LED(int pin, bool state, bool inverse /*= false*/)
  : pin_  {pin}
@@ -78,3 +80,4 @@ bool LED::tick()
     return false;
 }
 
+} //namespace etl

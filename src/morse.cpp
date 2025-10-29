@@ -1,6 +1,6 @@
 #include "morse.h"
 
-MorseCode::MorseCode(LED* led, uint32_t dit_duration_ms /*= 100*/)  
+MorseCode::MorseCode(etl::weak_ptr<etl::LED> led, uint32_t dit_duration_ms /*= 100*/)  
 : led_(led)
 , dit_duration_{dit_duration_ms}
 {
@@ -27,7 +27,7 @@ uint32_t MorseCode::send(const String& text)
 
 void MorseCode::reset()
 {
-    if(led_) led_->off();
+    if(auto led = led_.lock(); led) led->off();
     transmitting_ = false;     // идет процесс передачи
     is_completed_ = false;     // завершено
     dit_code_.clear();        // последовательность точек-тире для текущего символа      
@@ -88,47 +88,50 @@ etl::vector<char> MorseCode::message_to_code(const String& text)
 
 void MorseCode::tick()
 {
-    if(led_) led_->tick();
-    if(timer_next_.tick())
+    if(auto led = led_.lock(); led)
     {
-        if(dit_pos_ < static_cast<int>(dit_code_.size()))
+        led->tick();
+        if(timer_next_.tick())
         {
-            // Передать текущий символ
-            switch(dit_code_[dit_pos_])
+            if(dit_pos_ < static_cast<int>(dit_code_.size()))
             {
-            case code_t::DOT:
-                if(led_) led_->blink(interval_t::dot * dit_duration_);
-                timer_next_.start((interval_t::dot + interval_t::pulse) * dit_duration_, GTMode::Timeout);
-            //    debug_trace_dit(code_t::DOT, interval_t::dot, interval_t::pulse);
-                break;        
-            case code_t::DASH:
-                if(led_) led_->blink(interval_t::dash * dit_duration_);
-                timer_next_.start((interval_t::dash + interval_t::pulse) * dit_duration_, GTMode::Timeout);
-            //    debug_trace_dit(code_t::DASH, interval_t::dash, interval_t::pulse);
-                break;        
-            case code_t::PAUSE:
-                if(led_) led_->off();
-                timer_next_.start(interval_t::symbol * dit_duration_, GTMode::Timeout);
-            //    debug_trace_dit(code_t::PAUSE, 0, interval_t::symbol);
-                break;        
-            case code_t::WDBR:
-                if(led_) led_->off();
-                timer_next_.start(interval_t::word * dit_duration_, GTMode::Timeout);
-            //    debug_trace_dit(code_t::WDBR, 0, interval_t::word);
-                break;        
-            default:
-                Serial.println("ERROR: Неизвестный символ!");
-                break;
-            }
+                // Передать текущий символ
+                switch(dit_code_[dit_pos_])
+                {
+                case code_t::DOT:
+                    led->blink(interval_t::dot * dit_duration_);
+                    timer_next_.start((interval_t::dot + interval_t::pulse) * dit_duration_, GTMode::Timeout);
+                //    debug_trace_dit(code_t::DOT, interval_t::dot, interval_t::pulse);
+                    break;        
+                case code_t::DASH:
+                    led->blink(interval_t::dash * dit_duration_);
+                    timer_next_.start((interval_t::dash + interval_t::pulse) * dit_duration_, GTMode::Timeout);
+                //    debug_trace_dit(code_t::DASH, interval_t::dash, interval_t::pulse);
+                    break;        
+                case code_t::PAUSE:
+                    led->off();
+                    timer_next_.start(interval_t::symbol * dit_duration_, GTMode::Timeout);
+                //    debug_trace_dit(code_t::PAUSE, 0, interval_t::symbol);
+                    break;        
+                case code_t::WDBR:
+                    led->off();
+                    timer_next_.start(interval_t::word * dit_duration_, GTMode::Timeout);
+                //    debug_trace_dit(code_t::WDBR, 0, interval_t::word);
+                    break;        
+                default:
+                    Serial.println("ERROR: Неизвестный символ!");
+                    break;
+                }
 
-            // Переместить указатель к следующему
-            dit_pos_++;
-        }
-        else
-        {
-            // стоп, все данные переданы
-            transmitting_ = false;    // идет процесс передачи
-            is_completed_ = true;     // завершено
+                // Переместить указатель к следующему
+                dit_pos_++;
+            }
+            else
+            {
+                // стоп, все данные переданы
+                transmitting_ = false;    // идет процесс передачи
+                is_completed_ = true;     // завершено
+            }
         }
     }
 }

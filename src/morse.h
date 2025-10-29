@@ -2,9 +2,10 @@
 // Передает заданные цифры морганием встроенного светодиода
 #pragma once
 
-#include "led.h"
 #include "GTimer.h"
+#include "etl_led.h"
 #include "etl_vector.h"
+#include "etl_memory.h"
 
 class MorseCode
 {
@@ -24,7 +25,7 @@ class MorseCode
     };
 
 public: 
-    MorseCode(LED* led, uint32_t dit_duration_ms = 50);   // светодиод для моргания и стандартная длительность точки
+    MorseCode(etl::weak_ptr<etl::LED> led, uint32_t dit_duration_ms = 50);   // светодиод для моргания и стандартная длительность точки
     virtual ~MorseCode() = default;
 
     struct table_t
@@ -46,7 +47,7 @@ protected:
     uint32_t get_dit_code_duration(const etl::vector<char>& dit_code);
 
 protected:
-    LED*     led_           = nullptr;   // светодиод для передачи кода
+    etl::weak_ptr<etl::LED> led_;        // светодиод для передачи кода
     uint32_t dit_duration_  = 100;       // длительность единицы времени
 
     bool     transmitting_  = false;     // идет процесс передачи
