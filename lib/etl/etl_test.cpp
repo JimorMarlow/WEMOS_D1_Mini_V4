@@ -33,6 +33,7 @@ namespace unittest {
         
         test_result(trace, "test_optional", test_optional());
         test_result(trace, "test_unique", test_unique());
+        test_result(trace, "test_shared_weak", test_shared_weak());
         test_result(trace, "test_queue", test_queue());
         test_result(trace, "test_vector", test_vector());
         test_result(trace, "test_array", test_array());
@@ -47,6 +48,7 @@ namespace unittest {
         trace.println("--------------------------------");
         int memory_leaks = int(ESP.getFreeHeap()) - mem_free;
         trace.print("MEMORY LEAKS: "); trace.print(memory_leaks); trace.println(memory_leaks == 0 ? "\tOK" : "\tFAILED");
+        trace.printf("sizeof: int = %d, float = %d, double = %d\n", sizeof(int), sizeof(float), sizeof(double));
         trace.println("--------------------------------");
      
     //    profiler_average_filter(trace);
@@ -100,7 +102,7 @@ namespace unittest {
     {
         etl::unique_ptr<int> int_ptr;
         if(int_ptr) return "empty unique_ptr failed";
-        TEST_EQUAL(int_ptr.operator bool(), false, "operator bool()");
+        TEST_EQUAL(int_ptr.operator bool(), false, "unique_ptr operator bool()");
         TEST_EQUAL(int_ptr.empty(), true, "empty");
         TEST_EQUAL(int_ptr, nullptr, "nullptr compare");
         int_ptr = etl::make_unique<int>(42);
@@ -108,6 +110,59 @@ namespace unittest {
         TEST_NOT_EQUAL(int_ptr, nullptr, "not nullptr compare");
         TEST_EQUAL(*int_ptr, 42, "unique_ptr equils 42");
         return "";  // no errors
+    }
+
+    String test_shared_weak()
+    {
+        etl::shared_ptr<int> int_ptr;
+        if(int_ptr) return "shared_ptr failed";
+        TEST_EQUAL(int_ptr.operator bool(), false, "shared_ptr operator bool()");
+        TEST_EQUAL(int_ptr.empty(), true, "shared_ptr empty");
+        TEST_EQUAL(int_ptr, nullptr, "shared_ptr nullptr compare");
+        int_ptr = etl::make_shared<int>(42);
+        if(!int_ptr) return "shared_ptr should be filled";
+        TEST_NOT_EQUAL(int_ptr, nullptr, "shared_ptrnot nullptr compare");
+        TEST_EQUAL(*int_ptr, 42, "shared_ptr equils 42");
+
+        etl::weak_ptr<int> int_wptr;
+        if(int_wptr) return "etl::weak_ptr failed";
+        TEST_EQUAL(int_wptr.operator bool(), false, "etl::weak_ptr operator bool()");
+        TEST_EQUAL(int_wptr.empty(), true, "etl::weak_ptr empty");
+        TEST_EQUAL(int_wptr, nullptr, "etl::weak_ptr nullptr compare");
+
+        // Использование weak_ptr
+        int_wptr = int_ptr;
+        TEST_EQUAL(int_wptr.expired(), false, "Weak ptr expired: false");
+                
+        {
+            auto locked = int_wptr.lock(); 
+            TEST_EQUAL(locked.empty(), false, "etl::weak_ptr shared lock() ");
+        }
+        
+        // Сброс shared_ptr
+        int_ptr.reset();
+        TEST_EQUAL(int_wptr.expired(), true, "Weak ptr expired after reset: true");
+
+        {
+            auto locked = int_wptr.lock(); 
+            TEST_EQUAL(locked.empty(), true, "etl::weak_ptr shared lock() after reset");
+        }
+
+        // Расчет счетчиков
+        auto stop_watch = etl::make_shared<etl::tools::stop_watch>();
+        TEST_EQUAL(stop_watch.unique(), true, "stop_watch.unique() true");
+        TEST_EQUAL(stop_watch.use_count(), 1, "stop_watch.use_count() 1");
+        {
+            auto sw1 = stop_watch;
+            TEST_EQUAL(stop_watch.use_count(), 2, "stop_watch.use_count() 2");
+            auto sw2 = stop_watch;
+            TEST_EQUAL(stop_watch.use_count(), 3, "stop_watch.use_count() 3");
+        }
+        TEST_EQUAL(stop_watch.use_count(), 1, "stop_watch.use_count() 1 after");
+        stop_watch.reset();
+        TEST_EQUAL(stop_watch.empty(), true, "shared_ptr stop_watch reset()");
+    
+        return "";
     }
 
     String test_queue()

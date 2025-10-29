@@ -4,6 +4,7 @@ PS. deepseek edition
 */
 #pragma once
 #include "Arduino.h"
+#include "etl_utility.h"
 
 namespace etl {
 
@@ -299,3 +300,424 @@ bool operator!=(std::nullptr_t, const unique_ptr<T>& p) noexcept {
 // ✅ Перемещающая семантика
 // ✅ Автоматическое управление памятью (RAII)
 // ✅ Минимальный footprint (~300 байт flash)
+
+namespace etl 
+{
+// Базовый класс для счетчика ссылок
+class control_block {
+private:
+    int strong_ref_count = 0;
+    int weak_ref_count = 0;
+
+public:
+    control_block() : strong_ref_count(1), weak_ref_count(0) {}
+    virtual ~control_block() = default;
+
+    void add_strong_ref() { ++strong_ref_count; }
+    void add_weak_ref() { ++weak_ref_count; }
+
+    void release_strong_ref() {
+        if (--strong_ref_count == 0) {
+            delete_object();
+            if (weak_ref_count == 0) {
+                delete this;
+            }
+        }
+    }
+
+    void release_weak_ref() {
+        if (--weak_ref_count == 0 && strong_ref_count == 0) {
+            delete this;
+        }
+    }
+
+    int use_count() const { return strong_ref_count; }
+    bool expired() const { return strong_ref_count == 0; }
+
+protected:
+    virtual void delete_object() = 0;
+};
+
+// Специализированный control_block для конкретного типа
+template<typename T>
+class control_block_impl : public control_block {
+private:
+    T* ptr;
+
+public:
+    control_block_impl(T* p) : ptr(p) {}
+    
+protected:
+    void delete_object() override {
+        delete ptr;
+        ptr = nullptr;
+    }
+};
+
+// Легковесный weak_ptr
+template<typename T>
+class weak_ptr;
+
+// Легковесный shared_ptr
+template<typename T>
+class shared_ptr {
+private:
+    T* ptr;
+    control_block* control;
+
+    template<typename U> friend class weak_ptr;
+    template<typename U> friend class shared_ptr;
+
+public:
+    // Конструкторы
+    constexpr shared_ptr() noexcept : ptr(nullptr), control(nullptr) {}
+    
+    constexpr shared_ptr(nullptr_t) noexcept : ptr(nullptr), control(nullptr) {}
+    
+    explicit shared_ptr(T* p) : ptr(p), control(nullptr) {
+        if (p) {
+            control = new control_block_impl<T>(p);
+        }
+    }
+    
+    // Копирование
+    shared_ptr(const shared_ptr& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        if (control) {
+            control->add_strong_ref();
+        }
+    }
+    
+    template<typename U>
+    shared_ptr(const shared_ptr<U>& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        if (control) {
+            control->add_strong_ref();
+        }
+    }
+    
+    // Перемещение
+    shared_ptr(shared_ptr&& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        other.ptr = nullptr;
+        other.control = nullptr;
+    }
+    
+    template<typename U>
+    shared_ptr(shared_ptr<U>&& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        other.ptr = nullptr;
+        other.control = nullptr;
+    }
+    
+    // Конструктор из weak_ptr
+    explicit shared_ptr(const weak_ptr<T>& other) 
+        : ptr(other.ptr), control(other.control) {
+        if (control && !control->expired()) {
+            control->add_strong_ref();
+        } else {
+            ptr = nullptr;
+            control = nullptr;
+        }
+    }
+    
+    // Деструктор
+    ~shared_ptr() {
+        reset();
+    }
+    
+    // Операторы присваивания
+    shared_ptr& operator=(const shared_ptr& other) noexcept {
+        if (this != &other) {
+            reset();
+            ptr = other.ptr;
+            control = other.control;
+            if (control) {
+                control->add_strong_ref();
+            }
+        }
+        return *this;
+    }
+    
+    shared_ptr& operator=(shared_ptr&& other) noexcept {
+        if (this != &other) {
+            reset();
+            ptr = other.ptr;
+            control = other.control;
+            other.ptr = nullptr;
+            other.control = nullptr;
+        }
+        return *this;
+    }
+    
+    // Модификаторы
+    void reset() {
+        if (control) {
+            control->release_strong_ref();
+        }
+        ptr = nullptr;
+        control = nullptr;
+    }
+    
+    void reset(T* p) {
+        reset();
+        if (p) {
+            ptr = p;
+            control = new control_block_impl<T>(p);
+        }
+    }
+    
+    void swap(shared_ptr& other) noexcept {
+        etl::swap(ptr, other.ptr);
+        etl::swap(control, other.control);
+    }
+     
+    // Наблюдатели
+    T* get() const noexcept { return ptr; }
+    T& operator*() const noexcept { return *ptr; }
+    T* operator->() const noexcept { return ptr; }
+    
+    int use_count() const noexcept { 
+        return control ? control->use_count() : 0; 
+    }
+    
+    bool unique() const noexcept { return use_count() == 1; }
+    explicit operator bool() const noexcept { return ptr != nullptr; }
+    bool empty() const noexcept { return ptr == nullptr; }  // Проверка на пустоту
+
+    // Операторы сравнения с nullptr
+    bool operator==(nullptr_t) const noexcept { return empty(); }
+    bool operator!=(nullptr_t) const noexcept { return !empty(); }
+    
+    // Для обратной совместимости - сравнение с nullptr
+    friend bool operator==(nullptr_t, const shared_ptr& sp) noexcept { return sp.empty(); }
+    friend bool operator!=(nullptr_t, const shared_ptr& sp) noexcept { return !sp.empty(); }
+    
+    // Создание shared_ptr
+    template<typename U, typename... Args>
+    friend shared_ptr<U> make_shared(Args&&... args);
+};
+
+// weak_ptr implementation
+template<typename T>
+class weak_ptr {
+private:
+    T* ptr;
+    control_block* control;
+
+    template<typename U> friend class shared_ptr;
+    template<typename U> friend class weak_ptr;
+
+public:
+    // Конструкторы
+    constexpr weak_ptr() noexcept : ptr(nullptr), control(nullptr) {}
+    
+    weak_ptr(const weak_ptr& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        if (control) {
+            control->add_weak_ref();
+        }
+    }
+    
+    template<typename U>
+    weak_ptr(const weak_ptr<U>& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        if (control) {
+            control->add_weak_ref();
+        }
+    }
+    
+    weak_ptr(const shared_ptr<T>& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        if (control) {
+            control->add_weak_ref();
+        }
+    }
+    
+    template<typename U>
+    weak_ptr(const shared_ptr<U>& other) noexcept 
+        : ptr(other.ptr), control(other.control) {
+        if (control) {
+            control->add_weak_ref();
+        }
+    }
+    
+    // Деструктор
+    ~weak_ptr() {
+        reset();
+    }
+    
+    // Операторы присваивания
+    weak_ptr& operator=(const weak_ptr& other) noexcept {
+        if (this != &other) {
+            reset();
+            ptr = other.ptr;
+            control = other.control;
+            if (control) {
+                control->add_weak_ref();
+            }
+        }
+        return *this;
+    }
+    
+    template<typename U>
+    weak_ptr& operator=(const weak_ptr<U>& other) noexcept {
+        reset();
+        ptr = other.ptr;
+        control = other.control;
+        if (control) {
+            control->add_weak_ref();
+        }
+        return *this;
+    }
+    
+    weak_ptr& operator=(const shared_ptr<T>& other) noexcept {
+        reset();
+        ptr = other.ptr;
+        control = other.control;
+        if (control) {
+            control->add_weak_ref();
+        }
+        return *this;
+    }
+    
+    // Модификаторы
+    void reset() {
+        if (control) {
+            control->release_weak_ref();
+        }
+        ptr = nullptr;
+        control = nullptr;
+    }
+    
+    void swap(weak_ptr& other) noexcept {
+        etl::swap(ptr, other.ptr);
+        etl::swap(control, other.control);
+    }
+        
+    // Наблюдатели
+    int use_count() const noexcept { 
+        return control ? control->use_count() : 0; 
+    }
+    
+    bool expired() const noexcept { 
+        return !control || control->expired(); 
+    }
+    
+    shared_ptr<T> lock() const noexcept {
+        return expired() ? shared_ptr<T>() : shared_ptr<T>(*this);
+    }
+
+    explicit operator bool() const noexcept { 
+        return !expired() && ptr != nullptr; 
+    }
+    
+    // Проверка на пустоту
+    bool empty() const noexcept { return ptr == nullptr; }
+
+    // Операторы сравнения с nullptr
+    bool operator==(nullptr_t) const noexcept { return empty(); }
+    bool operator!=(nullptr_t) const noexcept { return !empty(); }
+    
+    // Для обратной совместимости - сравнение с nullptr
+    friend bool operator==(nullptr_t, const weak_ptr& wp) noexcept { return wp.empty(); }
+    friend bool operator!=(nullptr_t, const weak_ptr& wp) noexcept { return !wp.empty(); }
+};
+
+// Фабричная функция make_shared
+template<typename T, typename... Args>
+shared_ptr<T> make_shared(Args&&... args) {
+    shared_ptr<T> sp;
+    sp.ptr = new T(etl::forward<Args>(args)...);
+    sp.control = new control_block_impl<T>(sp.ptr);
+    return sp;
+}
+
+// Вспомогательные функции
+template<typename T>
+void swap(shared_ptr<T>& a, shared_ptr<T>& b) noexcept {
+    a.swap(b);
+}
+
+template<typename T>
+void swap(weak_ptr<T>& a, weak_ptr<T>& b) noexcept {
+    a.swap(b);
+}
+
+} // namespace etl
+
+// Пример использования:
+
+// cpp
+// #include "etl_shared_ptr.h"
+
+// class Sensor {
+// private:
+//     String name;
+//     float value;
+    
+// public:
+//     Sensor(const String& n) : name(n), value(0.0f) {}
+    
+//     void update(float new_value) { value = new_value; }
+//     float read() const { return value; }
+//     String get_name() const { return name; }
+// };
+
+// void demonstrate_shared_ptr() {
+//     Serial.begin(9600);
+    
+//     // Создание через make_shared
+//     etl::shared_ptr<Sensor> temp_sensor = etl::make_shared<Sensor>("DHT22");
+//     temp_sensor->update(25.5f);
+    
+//     Serial.print("Sensor: ");
+//     Serial.print(temp_sensor->get_name());
+//     Serial.print(" = ");
+//     Serial.println(temp_sensor->read());
+//     Serial.print("Use count: ");
+//     Serial.println(temp_sensor.use_count()); // 1
+    
+//     // Копирование shared_ptr
+//     {
+//         etl::shared_ptr<Sensor> sensor_copy = temp_sensor;
+//         Serial.print("Use count after copy: ");
+//         Serial.println(temp_sensor.use_count()); // 2
+        
+//         sensor_copy->update(26.0f);
+//     } // sensor_copy уничтожается здесь
+    
+//     Serial.print("Use count after scope: ");
+//     Serial.println(temp_sensor.use_count()); // 1
+    
+//     // Использование weak_ptr
+//     etl::weak_ptr<Sensor> weak_sensor = temp_sensor;
+//     Serial.print("Weak ptr expired: ");
+//     Serial.println(weak_sensor.expired() ? "YES" : "NO"); // NO
+    
+//     if (auto locked = weak_sensor.lock()) {
+//         Serial.print("Locked sensor value: ");
+//         Serial.println(locked->read());
+//     }
+    
+//     // Сброс shared_ptr
+//     temp_sensor.reset();
+//     Serial.print("Weak ptr expired after reset: ");
+//     Serial.println(weak_sensor.expired() ? "YES" : "NO"); // YES
+// }
+
+// void setup() {
+//     demonstrate_shared_ptr();
+// }
+
+// void loop() {
+//     // Основной цикл
+// }
+
+// Ключевые особенности:
+// Минимальный оверхед - только 2 указателя на объект
+// Безопасность - автоматическое управление памятью
+// Совместимость - API похож на std::shared_ptr/std::weak_ptr
+// Эффективность - один allocation для объекта и control block
+// Thread-unsafe - оптимизировано для однопоточных embedded систем
+// Идеально подходит для управления ресурсами в Arduino проектах!

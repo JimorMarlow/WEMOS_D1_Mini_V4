@@ -31,7 +31,7 @@ constexpr auto end(Container& c) -> decltype(c.end()) {
     return c.end();
 }
 
-// Простой аналог std::move
+// ==================== УТИЛИТЫ ДЛЯ PERFECT FORWARDING ====================
 template<typename T>
 struct remove_reference {
     typedef T type;
@@ -48,9 +48,24 @@ struct remove_reference<T&&> {
 };
 
 template<typename T>
-constexpr typename remove_reference<T>::type&& move(T&& arg) noexcept {
-    return static_cast<typename remove_reference<T>::type&&>(arg);
+using remove_reference_t = typename remove_reference<T>::type;
+
+// Упрощенный forward для embedded
+template<typename T>
+constexpr T&& forward(remove_reference_t<T>& arg) noexcept {
+    return static_cast<T&&>(arg);
 }
+
+template<typename T>
+constexpr T&& forward(remove_reference_t<T>&& arg) noexcept {
+    return static_cast<T&&>(arg);
+}
+
+template<typename T>
+constexpr remove_reference_t<T>&& move(T&& arg) noexcept {
+    return static_cast<remove_reference_t<T>&&>(arg);
+}
+// ==================== КОНЕЦ УТИЛИТ ====================
 
 // Минимальная реализация для экономии памяти
 template<typename T>
@@ -69,6 +84,13 @@ void swap(T& lhs, T&rhs)
     T tm = move(lhs); 
     lhs = move(rhs);
     rhs = move(tm);
+}
+
+template<typename T>
+void swap(T*& a, T*& b) noexcept {
+    T* temp = a;
+    a = b;
+    b = temp;
 }
 
 // Базовая версия clamp

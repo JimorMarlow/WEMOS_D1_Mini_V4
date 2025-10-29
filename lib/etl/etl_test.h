@@ -13,6 +13,7 @@ namespace unittest {
     String test_empty();
     String test_optional();
     String test_unique();
+    String test_shared_weak();
     String test_queue();
     String test_vector();
     String test_array();
