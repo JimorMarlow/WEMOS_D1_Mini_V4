@@ -54,7 +54,7 @@ namespace unittest {
     //    profiler_average_filter(trace);
     //    profiler_lookup_table(trace);
     //    profiler_color_tds(trace);
-    //    profiler_lookup_ntc(trace);
+        profiler_lookup_ntc(trace);
 
         return true;
     }
@@ -897,6 +897,20 @@ namespace unittest {
         // -------------------------------------------------------------------
     }
 
+    template<typename T, typename L>
+    uint32_t compare_lookup_time(const T& storage, const L& lookup_table, float step)
+    {
+        etl::tools::stop_watch stat;   
+        for (float r = storage[0].raw; r >= storage[storage.size()-1].raw - 1.0; r-=step) 
+        {
+            stat.start();
+            float t = lookup_table.raw_to_value(r);
+            stat.stop();
+            UNREFERENCED_PARAMETER(t);
+        }
+        return stat.get_averate_time();
+    }
+
     void profiler_lookup_ntc(Stream& trace)    // Для термодатчики ntc 3950 50K проверка перевода сопротивления в градусы цельсия
     {
         pgm::array pgm_3950_50K(ntc_temperature_sensor_3950_50K_p);
@@ -916,6 +930,20 @@ namespace unittest {
         trace.print("TIME;\tus;\t"); 
         trace.println(stat.get_averate_time()); 
         // ESP32C3:         TIME;   us;     15
+
+        etl::vector<etl::lookup_t<float, float>> vec_3950_50K (pgm_3950_50K.size());
+        etl::copy(etl::begin(pgm_3950_50K), etl::end(pgm_3950_50K), etl::begin(vec_3950_50K));
+
+        etl::array arr_3950_50K(ntc_temperature_sensor_3950_50K);
+
+        auto resistance_lookup_pgm = etl::pgm_lookup<float, float>(pgm_3950_50K, etl::lookup_mode::INTERPOLATE, etl::bounds_mode::EXTRAPOLATE);
+        auto resistance_lookup_arr = etl::array_lookup<float, float>(arr_3950_50K, etl::lookup_mode::INTERPOLATE, etl::bounds_mode::EXTRAPOLATE);
+        auto resistance_lookup_vec = etl::vector_lookup<float, float>(vec_3950_50K, etl::lookup_mode::INTERPOLATE, etl::bounds_mode::EXTRAPOLATE);
+
+        float step = 0.1;
+        trace.printf("%s;\t%d us;\t\n", "pgm_lookup", compare_lookup_time(pgm_3950_50K, resistance_lookup_pgm, step));  
+        trace.printf("%s;\t%d us;\t\n", "arr_lookup", compare_lookup_time(arr_3950_50K, resistance_lookup_arr, step));  
+        trace.printf("%s;\t%d us;\t\n", "vec_lookup", compare_lookup_time(vec_3950_50K, resistance_lookup_vec, step));  
     }
 
 }// namespace unittest
