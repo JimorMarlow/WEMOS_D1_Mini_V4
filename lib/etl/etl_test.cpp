@@ -16,7 +16,7 @@
 #include "sensor/ntc_temperature_3950_50K_table.h"
 #include "tools/stop_watch.h"
 #include "tools/strings.h"
-//#include "esp_manager.h"
+#include "etl_espnow.h"
 
 namespace etl {
 namespace unittest { 
@@ -37,7 +37,7 @@ namespace unittest {
         test_result(trace, "test_queue", test_queue());
         test_result(trace, "test_vector", test_vector());
         test_result(trace, "test_array", test_array());
-    //    test_result(trace, "test_espnow", test_espnow());
+        test_result(trace, "test_espnow", test_espnow());
         test_result(trace, "test_lookup", test_lookup());
         test_result(trace, "test_color_lookup", test_color_lookup());
         test_result(trace, "test_color_spectrum", test_color_spectrum());
@@ -366,22 +366,22 @@ namespace unittest {
         return "";  // no errors
     }
 
-    // String test_espnow()
-    // {
-    //     const espnow::endpoint_t s001 {"F4:CF:A2:78:DF:F9"};    
-    //     espnow::endpoint_t s002 {0xF4,0xCF,0xA2,0x78,0xDF,0xF9}; 
+    String test_espnow()
+    {
+        const espnow::endpoint_t s001 {"F4:CF:A2:78:DF:F9"};    
+        espnow::endpoint_t s002 {0xF4,0xCF,0xA2,0x78,0xDF,0xF9}; 
         
-    //     const espnow::endpoint_t s003 {"EC:FA:BC:D5:A2:50"};
+        const espnow::endpoint_t s003 {"EC:FA:BC:D5:A2:50"};
         
-    //     TEST_NOT_EQUAL(s001, s003, "espnow s001 != s003");
-    //     TEST_EQUAL(s001, s002, "espnow s001 == s002");
+        TEST_NOT_EQUAL(s001, s003, "espnow s001 != s003");
+        TEST_EQUAL(s001, s002, "espnow s001 == s002");
 
-    //     const espnow::endpoint_t esp_modules[] = {s001, s002, s003}; 
-    //     etl::array<espnow::endpoint_t> modules (esp_modules);
-    //     TEST_EQUAL(modules.contains(s003), true, "espnow modules.contains(s003)");
+        const espnow::endpoint_t esp_modules[] = {s001, s002, s003}; 
+        etl::array<espnow::endpoint_t> modules (esp_modules);
+        TEST_EQUAL(modules.contains(s003), true, "espnow modules.contains(s003)");
 
-    //     return "";  // no errors
-    // }
+        return "";  // no errors
+    }
 
     const etl::lookup_t<float, float> ntc_sensor_3950_50K_p[] PROGMEM = {{1000.0, 1.0}, {2000.0, 2.0}, {3000.0, 3.0}};
     const etl::lookup_t<float, float> ntc_sensor_3950_50K[] = {{1000.0, 1.0}, {2000.0, 2.0}, {3000.0, 3.0}};
