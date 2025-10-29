@@ -37,8 +37,10 @@ uint32_t BLINK_DURATION = 10;
 // Для включения нужной wi-fi библиотеки
 #pragma once
 #ifdef ESP8266
+  #define ESP_WIFI
   #include <ESP8266WiFi.h>
 #elif ESP32
+  #define ESP_WIFI
   #include <WiFi.h>
 #else
   #pragma message("ERROR: no Wi-Fi lib specified")
@@ -66,7 +68,7 @@ void setup() {
     // atl - отладка функционала
     etl::unittest::test_all(Serial);
     /////////////////////////////////////////
-
+#ifdef ESP_WIFI
     Serial.println("-----------WIFI----------");
     Serial.print("SSID: ");  Serial.println(WIFI_SSID);
     Serial.print("PASS: ");  Serial.println(WIFI_PASS);
@@ -78,6 +80,7 @@ void setup() {
     Serial.print("MAC : ");  Serial.println(WiFi.macAddress());
   
     Serial.println("-------------------------");
+#endif//ESP_WIFI
 }
 
 void loop() 
