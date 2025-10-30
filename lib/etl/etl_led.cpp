@@ -48,25 +48,45 @@ void led::write_state(bool state) // записать состояние в по
 void led::set_pwm(int pwm_value)   // Управление ШИМ (PWM) режимом, обычно 0-255 значения
 {
     int value = etl::clamp(pwm_value, MIN_PWMRANGE, MAX_PWMRANGE); // PWMRANGE
+    
+#ifdef ESP8266
+    analogWrite(_pin, value);
+#elif ESP32
     ledcWrite(_pwm_channel, value);
+#else
+    #pragma message("ERROR: led::set_pwm board not defined")
+#endif   
 }
 
 int led::get_pwm()
 {
+#ifdef ESP8266
+    return analogRead(_pin);
+#elif ESP32
     return ledcRead(_pwm_channel);
+#else
+    #pragma message("ERROR: led::get_pwm board not defined")
+    return 0;
+#endif    
 }
 
-void led::init_pwm(int pwm_channel, uint32_t frequency, uint8_t resolution)
+void led::init_pwm(int pwm_channel, uint32_t frequency /*= DEFAULT_PWM_FREQUENCY*/, uint8_t resolution /*= DEFAULT_PWM_RESOLUTION*/)
 {
     _pwm_channel = pwm_channel;
     _pwm_frequency = frequency;
-    _pwn_resolution = resolution;
-
+    _pwm_resolution = resolution;
+    
+#ifdef ESP8266
+    analogWriteResolution(_pwm_resolution);
+    analogWriteFreq(_pwm_frequency);
+#elif ESP32
     // задаём настройки ШИМ-канала:                                         
-    ledcSetup(_pwm_channel, _pwm_frequency, _pwn_resolution);
+    ledcSetup(_pwm_channel, _pwm_frequency, _pwm_resolution);
     // подключаем ШИМ-канал к пину светодиода:                                         
     ledcAttachPin(_pin, _pwm_channel);
-
+#else
+  #pragma message("ERROR: led::init_pwm board not defined")
+#endif    
 }
 
 void led::on()

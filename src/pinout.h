@@ -15,10 +15,8 @@
   // #define LED_BUILTIN D4
   const int SERIAL_INIT_DELAY = 0;
 
-  const int LED_FADE = 6;  // GPIO6
+  const int LED_FADE = 13;  // GPIO13 (MOSI)
   const int FADE_CHANNEL = 0;
-  const int FADE_FREQUENCY = 5000;
-  const int FADE_RESOLUTION = 8;
     
 #elif BOARD_ESP32_C3_SUPER_MINI // #elif ESP32
   // Код только для ESP32-C3
@@ -31,10 +29,8 @@
   const int LED_MORSE = LED_BUILTIN; //8; //LED_BUILTIN; НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
   const int SERIAL_INIT_DELAY = 1000; // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
 
-  const int LED_FADE = 6;  // GPIO6
-  const int FADE_CHANNEL = 0;
-  const int FADE_FREQUENCY = 5000;
-  const int FADE_RESOLUTION = 8;
+  const int LED_FADE = 6;  // GPIO6 (MOSI)
+  const int FADE_CHANNEL = 0;  
 #else
   // Код для других плат
   #pragma message("Компилируется под неизвестную плату. Добавьте BOARD_xxx в platformio.ini для нужной секции [env:xxx]")

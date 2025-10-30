@@ -30,7 +30,7 @@ GTimer<millis> timer_LED;
 uint32_t BLINK_INTERVAL = 2000;
 uint32_t BLINK_DURATION = 10;
 
-uint32_t FADE_INTERVAL = 5000;
+uint32_t FADE_INTERVAL = 3000;
 uint32_t FADE_PAUSE = 3000;
 bool fade_direction = true;
 etl::unique_ptr<GTimer<millis>> time_fade_pause;
@@ -72,7 +72,7 @@ void setup() {
 
     if(fadeLED) {
       Serial.println("fade started...");
-      fadeLED->init_pwm(FADE_CHANNEL, FADE_FREQUENCY, FADE_RESOLUTION);
+      fadeLED->init_pwm(FADE_CHANNEL);
       if(fade_direction) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
     }
 }
@@ -108,6 +108,7 @@ void loop()
       blinkLED->tick(); // если не используется morse нужно вызывать тут для обновления внутреннего таймера
     }
 
+    // плавное включение и выключение LED, в выключенном положении пауза, чтобы оценить правильность затемнения без мерцания
     if(time_fade_pause && time_fade_pause->tick())
     {
       // start new cycle

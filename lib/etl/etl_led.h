@@ -4,6 +4,9 @@
 #include <GTimer.h>
 #include "etl_memory.h"
 
+#define DEFAULT_PWM_FREQUENCY 5000   // Hz
+#define DEFAULT_PWM_RESOLUTION 8     // bit
+
 namespace etl {
 class led
 {
@@ -21,7 +24,7 @@ public:
 
     const int MIN_PWMRANGE = 0;
     const int MAX_PWMRANGE = 255;
-    void init_pwm(int pwm_channel, uint32_t frequency, uint8_t resolution);
+    void init_pwm(int pwm_channel, uint32_t frequency = DEFAULT_PWM_FREQUENCY, uint8_t resolution = DEFAULT_PWM_RESOLUTION);
     void set_pwm(int pwm_value);   // Управление ШИМ (PWM) режимом, обычно 0-255 значения
     int  get_pwm();
 
@@ -42,8 +45,8 @@ protected:
     GTimer<millis> _timer_Blink;                    // создать миллисекундный таймер для управления морганием
 
     int         _pwm_channel = 0;
-    uint32_t    _pwm_frequency;
-    uint8_t     _pwn_resolution;
+    uint32_t    _pwm_frequency  = DEFAULT_PWM_FREQUENCY;
+    uint8_t     _pwm_resolution = DEFAULT_PWM_RESOLUTION;
 
     uint32_t   _fade_time_ms;  // Сколько времени зажигать/тушить
     bool       _fade_direction = true;// true - fade_in 
