@@ -1,6 +1,6 @@
 #include "morse.h"
 
-MorseCode::MorseCode(etl::weak_ptr<etl::LED> led, uint32_t dit_duration_ms /*= 100*/)  
+MorseCode::MorseCode(etl::weak_ptr<etl::led> led, uint32_t dit_duration_ms /*= 100*/)  
 : led_(led)
 , dit_duration_{dit_duration_ms}
 {

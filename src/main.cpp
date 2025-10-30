@@ -7,14 +7,15 @@
 #include <GTimer.h>
 
 #include "etl_led.h"
-etl::shared_ptr<etl::LED> blinkLED = etl::make_shared<etl::LED>(LED_MORSE, false, INVERSE_BUILTING_LED);
+etl::shared_ptr<etl::led> blinkLED = etl::make_shared<etl::led>(LED_MORSE, false, INVERSE_BUILTING_LED);
+etl::shared_ptr<etl::led> fadeLED = etl::make_shared<etl::led>(LED_MORSE, false, INVERSE_BUILTING_LED);
 
 #include "morse_espnow.h"
 morse_relay_mgr morse_relay(true); // Передатчик данных по ESPNOW
 
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
-etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+etl::unique_ptr<MorseCode> morse; // = etl::make_unique<MorseCode>(blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
 
 #ifdef MORSE_CLIENT
 etl::unique_ptr<MorseCode> morse_client;// = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); 
@@ -28,6 +29,9 @@ GTimer<millis> timer_Morse;               // создать миллисекун
 GTimer<millis> timer_LED;
 uint32_t BLINK_INTERVAL = 2000;
 uint32_t BLINK_DURATION = 10;
+
+uint32_t FADE_INTERVAL = 5000;
+bool fade_direction = true;
 
 /////////////////////////////////////////
 // atl - отладка функционала
@@ -61,9 +65,13 @@ void setup() {
     Serial.print("SSID: ");  Serial.println(WIFI_SSID);
     Serial.print("PASS: ");  Serial.println(WIFI_PASS);
     Serial.print("MODE: ");  Serial.println(MORSE_MODE);
-    Serial.print("MAC : ");  Serial.println(espnow::board::get_mac_address());
+    Serial.print("MAC : ");  Serial.println(etl::espnow::board::get_mac_address());
     Serial.println("-------------------------");
 
+    if(fadeLED) {
+      Serial.println("fade started...");
+      if(fade_direction) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
+    }
 }
 
 void loop() 
@@ -95,6 +103,13 @@ void loop()
     }
     else {
       blinkLED->tick(); // если не используется morse нужно вызывать тут для обновления внутреннего таймера
+    }
+
+    if(fadeLED && fadeLED->tick()) // 
+    {
+      fade_direction = !fade_direction;
+      Serial.printf("main: fade %s\n", fade_direction ? "in" : "out");
+      if( fade_direction ) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
     }
 
     ///////////////////////////////////////////////////

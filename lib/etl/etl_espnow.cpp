@@ -2,6 +2,7 @@
 
 
 // ВНИМАНИЕ, этот файл почему-то не компилируется - разобраться
+namespace etl {
 namespace espnow {
     String board::get_mac_address() {
         // Подключение к Wi-Fi не требуется для получения MAC-адреса.
@@ -9,3 +10,4 @@ namespace espnow {
         return WiFi.macAddress();
     }
 } // namespace espnow
+} // namespace etl

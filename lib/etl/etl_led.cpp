@@ -1,83 +1,148 @@
 #include "etl_led.h"
+#include "etl_utility.h"
 
 namespace etl {
 
-LED::LED(int pin, bool state, bool inverse /*= false*/)
- : pin_  {pin}
- , state_{state}
- , inverse_{inverse}
+led::led(int pin, bool state, bool inverse /*= false*/)
+ : _pin  {pin}
+ , _state{state}
+ , _inverse{inverse}
 {
-    pinMode(pin_, OUTPUT); // Инициализация пина как выход
+    pinMode(_pin, OUTPUT); // Инициализация пина как выход
     bool cur_state = read_state();
-    if(cur_state != state_)
-        write_state(state_);
+    if(cur_state != _state)
+        write_state(_state);
 }
 
-bool LED::get_state()   // вернуть состояние из внутренней переменно
+bool led::get_state()   // вернуть состояние из внутренней переменно
 {
-   return state_;
+   return _state;
 }
     
-bool LED::set_state(bool state) // Установить новое состояние и записать в порт, если нужно, вернуть новое состояние
+bool led::set_state(bool state) // Установить новое состояние и записать в порт, если нужно, вернуть новое состояние
 {
-    if(state_ != state)
+    if(_state != state)
     {
-        state_ = state;
-        if(read_state() != state_)
+        _state = state;
+        if(read_state() != _state)
         {
-            write_state(state_);
+            write_state(_state);
         }
     }
 
-    return state_;
+    return _state;
 }
     
-bool LED::read_state()  // считать состояние из порта
+bool led::read_state()  // считать состояние из порта
 {
-    auto value = digitalRead(pin_);
-    return inverse_ ? value == LOW : value == HIGH;
+    auto value = digitalRead(_pin);
+    return _inverse ? value == LOW : value == HIGH;
 }
 
-void LED::write_state(bool state) // записать состояние в порт
+void led::write_state(bool state) // записать состояние в порт
 {
-    auto new_state = (inverse_ ? !state : state) ? HIGH : LOW;  
-    digitalWrite(pin_, new_state);
+    auto new_state = (_inverse ? !state : state) ? HIGH : LOW;  
+    digitalWrite(_pin, new_state);
 }
 
-void LED::on()
+void led::set_pwm(int pwm_value)   // Управление ШИМ (PWM) режимом, обычно 0-255 значения
+{
+    int value = etl::clamp(pwm_value, MIN_PWMRANGE, MAX_PWMRANGE); // PWMRANGE
+    analogWrite(_pin, value);
+}
+
+int led::get_pwm()
+{
+    return analogRead(_pin);
+}
+
+void led::set_pwm_frequency(uint32_t freq)
+{
+#ifdef ESP8266
+    analogWriteFreq(freq);
+#elif ESP32
+    analogWriteFrequency(freq);
+#else
+  #pragma message("ERROR: in led::set_pwm_frequency")
+#endif
+}
+
+void led::set_pwm_resolution(uint8_t bits)
+{
+    analogWriteResolution(bits);
+}
+
+void led::on()
 {
     set_state(true);
 }
     
-void LED::off()
+void led::off()
 {
     set_state(false);
 }
 
-void LED::toggle()
+void led::toggle()
 {
     set_state(!get_state());
 }
 
-void LED::blink(uint32_t delay_ms)
+void led::blink(uint32_t delay_ms)
 {
     toggle();
-    timer_Blink.start(delay_ms, GTMode::Timeout);
+    _timer_Blink.start(delay_ms, GTMode::Timeout);
 }
 
-void LED::reset()   // сбросить таймеры моргания, если были
+void led::reset()   // сбросить таймеры моргания, если были
 {
-    timer_Blink.stop();
+    _timer_Blink.stop();
 }
 
-bool LED::tick()
+bool led::tick()
 {
-    if(timer_Blink.tick())
+    if(_timer_Blink.tick())
     {
         toggle();
         return true;
     }
+
+    if(_timer_Fade)
+    {
+        bool is_runnig = !_timer_Fade->tick();
+        if(/*_timer_Fade->running()*/ is_runnig)
+        {
+            // Плавно гасим до нулевого уровня
+            uint32_t ms_left = _fade_direction ? _fade_time_ms - _timer_Fade->getLeft(): _timer_Fade->getLeft();        
+            float fade_ratio = static_cast<float>(ms_left) / _fade_time_ms;
+            if(_inverse) fade_ratio = 1.0 - fade_ratio;
+            fade_ratio = etl::clamp<float>(fade_ratio, 0.0, 1.0);
+            int pwm = static_cast<int>(fade_ratio * (MAX_PWMRANGE - MIN_PWMRANGE)); // :TODO: Потом заменить на нормальные диапазоны
+        //    Serial.printf("fade %s: pwm=%d, fade_ratio = %g, ms_left=%d, _fade_time_ms=%d\n", _fade_direction ? "in" : "out", pwm, fade_ratio, ms_left, _fade_time_ms);            
+            set_pwm(pwm);
+        }
+        else{
+            // Остановить таймер
+            Serial.println("_timer_Fade.reset");
+            _timer_Fade.reset();
+            return true;
+        }
+    }
+
     return false;
+}
+
+void led::fade_in(uint32_t delay_ms)   // Правно погасить, используя ШИМ
+{
+    _fade_direction = true;
+    _fade_time_ms = delay_ms;
+    _timer_Fade = etl::make_unique<GTimer<millis>>(delay_ms, true, GTMode::Interval);
+}
+
+void led::fade_out(uint32_t delay_ms)   // Правно зажечь, используя ШИМ
+{
+    _fade_direction = false;
+    _fade_time_ms = delay_ms;
+    _timer_Fade = etl::make_unique<GTimer<millis>>(delay_ms, true, GTMode::Interval);
 }
 
 } //namespace etl

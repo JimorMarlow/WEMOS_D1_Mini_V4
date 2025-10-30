@@ -2,13 +2,14 @@
 #pragma once
 #include "Arduino.h"
 #include <GTimer.h>
+#include "etl_memory.h"
 
 namespace etl {
-class LED
+class led
 {
 public:
-    LED(int pin, bool state, bool inverse = false);
-    virtual ~LED() = default;
+    led(int pin, bool state, bool inverse = false);
+    virtual ~led() = default;
 
     virtual bool tick();        // out: true - изменилось состояние по внутреннему таймеру
 
@@ -18,18 +19,32 @@ public:
     bool read_state();  // считать состояние из порта
     void write_state(bool state); // записать состояние в порт
 
+    const int MIN_PWMRANGE = 0;
+    const int MAX_PWMRANGE = 255;
+    void set_pwm_frequency(uint32_t freq);
+    void set_pwm_resolution(uint8_t bits);
+    void set_pwm(int pwm_value);   // Управление ШИМ (PWM) режимом, обычно 0-255 значения
+    int  get_pwm();
+
     virtual void on();
     virtual void off();
     virtual void blink(uint32_t delay_ms);
     virtual void toggle();
     virtual void reset();   // сбросить таймеры моргания, если были
-   
-protected:
-    int     pin_    = -1;
-    bool    state_  = false;
-    bool    inverse_ = false;   // инвертировать состояние для некоторых пинов (н-р, встроенный led для esp8266)
 
-    GTimer<millis> timer_Blink;                 // создать миллисекундный таймер для управления морганием
+    virtual void fade_in(uint32_t delay_ms);   // Правно погасить, используя ШИМ
+    virtual void fade_out(uint32_t delay_ms);   // Правно зажечь, используя ШИМ
+       
+protected:
+    int     _pin    = -1;
+    bool    _state  = false;
+    bool    _inverse = false;   // инвертировать состояние для некоторых пинов (н-р, встроенный led для esp8266)
+
+    GTimer<millis> _timer_Blink;                    // создать миллисекундный таймер для управления морганием
+
+    uint32_t   _fade_time_ms;  // Сколько времени зажигать/тушить
+    bool       _fade_direction = true;// true - fade_in 
+    etl::unique_ptr<GTimer<millis>> _timer_Fade;
 };
 
 } //namespace etl

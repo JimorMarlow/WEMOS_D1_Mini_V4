@@ -25,6 +25,7 @@
     #define ESP_FAIL        -1      /*!< Generic esp_err_t code indicating failure */   
 #endif
 
+namespace etl {
 namespace espnow {
 
     class board {
@@ -236,5 +237,5 @@ namespace espnow {
     };
 
 }// namespace espnow
-
+}// namespace etl
 #endif//ESP_MANAGER_H

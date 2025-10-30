@@ -19,9 +19,9 @@
 
 // Мои модули для отладки
 namespace esp_board {
-    const espnow::endpoint_t WEMOS_D1_Mini_v4_s001 {"F4:CF:A2:78:DF:F9"};    // Первая плата без крышки рассеивателя
-    const espnow::endpoint_t WEMOS_D1_Mini_v3_s002 {"EC:FA:BC:D5:A2:50"};    // Вторая с крышкой
-    const espnow::endpoint_t ESP32_C3_ProMini_s003 {"0C:4E:A0:68:5A:E4"};    // ESP32 C3 Pro Mini с гнездом 
+    const etl::espnow::endpoint_t WEMOS_D1_Mini_v4_s001 {"F4:CF:A2:78:DF:F9"};    // Первая плата без крышки рассеивателя
+    const etl::espnow::endpoint_t WEMOS_D1_Mini_v3_s002 {"EC:FA:BC:D5:A2:50"};    // Вторая с крышкой
+    const etl::espnow::endpoint_t ESP32_C3_ProMini_s003 {"0C:4E:A0:68:5A:E4"};    // ESP32 C3 Pro Mini с гнездом 
 }// namespace esp_board
 
 // Структура для сообщений
@@ -36,10 +36,10 @@ struct morse_message_t {
     uint32_t value = 0;
 };
 
-class morse_relay_mgr : public espnow::manager<morse_message_t>
+class morse_relay_mgr : public etl::espnow::manager<morse_message_t>
 {
 private:
-    etl::LED* _led = nullptr;
+    etl::led* _led = nullptr;
 public: 
     morse_relay_mgr(bool server){}
     void send_blink(uint32_t duration) {
@@ -49,7 +49,7 @@ public:
     }
 
 protected:
-    virtual void on_data_recieve(const espnow::endpoint_t& from, const uint8_t *incomingData, int len) override {
+    virtual void on_data_recieve(const etl::espnow::endpoint_t& from, const uint8_t *incomingData, int len) override {
         // Базовая реализация - можно переопределить
         manager::on_data_recieve(from, incomingData, len);
         if(auto msg = get_last_received_message(); msg)
