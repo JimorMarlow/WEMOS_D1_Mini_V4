@@ -48,28 +48,25 @@ void led::write_state(bool state) // записать состояние в по
 void led::set_pwm(int pwm_value)   // Управление ШИМ (PWM) режимом, обычно 0-255 значения
 {
     int value = etl::clamp(pwm_value, MIN_PWMRANGE, MAX_PWMRANGE); // PWMRANGE
-    analogWrite(_pin, value);
+    ledcWrite(_pwm_channel, value);
 }
 
 int led::get_pwm()
 {
-    return analogRead(_pin);
+    return ledcRead(_pwm_channel);
 }
 
-void led::set_pwm_frequency(uint32_t freq)
+void led::init_pwm(int pwm_channel, uint32_t frequency, uint8_t resolution)
 {
-#ifdef ESP8266
-    analogWriteFreq(freq);
-#elif ESP32
-    analogWriteFrequency(freq);
-#else
-  #pragma message("ERROR: in led::set_pwm_frequency")
-#endif
-}
+    _pwm_channel = pwm_channel;
+    _pwm_frequency = frequency;
+    _pwn_resolution = resolution;
 
-void led::set_pwm_resolution(uint8_t bits)
-{
-    analogWriteResolution(bits);
+    // задаём настройки ШИМ-канала:                                         
+    ledcSetup(_pwm_channel, _pwm_frequency, _pwn_resolution);
+    // подключаем ШИМ-канал к пину светодиода:                                         
+    ledcAttachPin(_pin, _pwm_channel);
+
 }
 
 void led::on()
@@ -122,7 +119,7 @@ bool led::tick()
         }
         else{
             // Остановить таймер
-            Serial.println("_timer_Fade.reset");
+        //    Serial.println("_timer_Fade.reset");
             _timer_Fade.reset();
             return true;
         }

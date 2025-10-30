@@ -8,7 +8,7 @@
 
 #include "etl_led.h"
 etl::shared_ptr<etl::led> blinkLED = etl::make_shared<etl::led>(LED_MORSE, false, INVERSE_BUILTING_LED);
-etl::shared_ptr<etl::led> fadeLED = etl::make_shared<etl::led>(LED_MORSE, false, INVERSE_BUILTING_LED);
+etl::shared_ptr<etl::led> fadeLED = etl::make_shared<etl::led>(LED_FADE, false);
 
 #include "morse_espnow.h"
 morse_relay_mgr morse_relay(true); // Передатчик данных по ESPNOW
@@ -31,7 +31,9 @@ uint32_t BLINK_INTERVAL = 2000;
 uint32_t BLINK_DURATION = 10;
 
 uint32_t FADE_INTERVAL = 5000;
+uint32_t FADE_PAUSE = 3000;
 bool fade_direction = true;
+etl::unique_ptr<GTimer<millis>> time_fade_pause;
 
 /////////////////////////////////////////
 // atl - отладка функционала
@@ -70,6 +72,7 @@ void setup() {
 
     if(fadeLED) {
       Serial.println("fade started...");
+      fadeLED->init_pwm(FADE_CHANNEL, FADE_FREQUENCY, FADE_RESOLUTION);
       if(fade_direction) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
     }
 }
@@ -105,11 +108,29 @@ void loop()
       blinkLED->tick(); // если не используется morse нужно вызывать тут для обновления внутреннего таймера
     }
 
-    if(fadeLED && fadeLED->tick()) // 
+    if(time_fade_pause && time_fade_pause->tick())
     {
-      fade_direction = !fade_direction;
-      Serial.printf("main: fade %s\n", fade_direction ? "in" : "out");
-      if( fade_direction ) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
+      // start new cycle
+      time_fade_pause.reset();
+      fade_direction = true;
+      if(fadeLED) fadeLED->fade_in(FADE_INTERVAL); 
+    }
+    else
+    {
+      if(fadeLED && fadeLED->tick()) // 
+      {
+        fade_direction = !fade_direction;
+        if(fade_direction)
+        {
+          // На новом цикле делаем паузу в выключенном состоянии, чтобы посмотреть, не мигает ли лента
+          time_fade_pause = etl::make_unique<GTimer<millis>>(FADE_PAUSE, true, GTMode::Interval);
+        }
+        else
+        {
+      //  Serial.printf("main: fade %s\n", fade_direction ? "in" : "out");
+          fadeLED->fade_out(FADE_INTERVAL);
+        }
+      }
     }
 
     ///////////////////////////////////////////////////

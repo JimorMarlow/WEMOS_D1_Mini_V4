@@ -8,7 +8,7 @@ namespace etl {
 class led
 {
 public:
-    led(int pin, bool state, bool inverse = false);
+    led(int pin, bool state = false, bool inverse = false);
     virtual ~led() = default;
 
     virtual bool tick();        // out: true - изменилось состояние по внутреннему таймеру
@@ -21,8 +21,7 @@ public:
 
     const int MIN_PWMRANGE = 0;
     const int MAX_PWMRANGE = 255;
-    void set_pwm_frequency(uint32_t freq);
-    void set_pwm_resolution(uint8_t bits);
+    void init_pwm(int pwm_channel, uint32_t frequency, uint8_t resolution);
     void set_pwm(int pwm_value);   // Управление ШИМ (PWM) режимом, обычно 0-255 значения
     int  get_pwm();
 
@@ -41,6 +40,10 @@ protected:
     bool    _inverse = false;   // инвертировать состояние для некоторых пинов (н-р, встроенный led для esp8266)
 
     GTimer<millis> _timer_Blink;                    // создать миллисекундный таймер для управления морганием
+
+    int         _pwm_channel = 0;
+    uint32_t    _pwm_frequency;
+    uint8_t     _pwn_resolution;
 
     uint32_t   _fade_time_ms;  // Сколько времени зажигать/тушить
     bool       _fade_direction = true;// true - fade_in 
