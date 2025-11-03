@@ -72,7 +72,7 @@ void setup() {
 
     if(fadeLED) {
       Serial.println("fade started...");
-      fadeLED->init_pwm(FADE_CHANNEL, 30000);
+      fadeLED->init_pwm(FADE_CHANNEL, 30000, 10); // Чтобы не было слышно пищания на низкой частоте - сделать 30КГц и максимально возможное разрешение 10 бит для плавности
       if(fade_direction) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
     }
 }
