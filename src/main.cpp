@@ -60,7 +60,7 @@ void setup() {
 
     /////////////////////////////////////////
     // atl - отладка функционала
-    etl::unittest::test_all(Serial);
+    //etl::unittest::test_all(Serial);
     /////////////////////////////////////////
 
     Serial.println("-----------WIFI----------");
@@ -72,7 +72,7 @@ void setup() {
 
     if(fadeLED) {
       Serial.println("fade started...");
-      fadeLED->init_pwm(FADE_CHANNEL);
+      fadeLED->init_pwm(FADE_CHANNEL, 30000);
       if(fade_direction) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
     }
 }
