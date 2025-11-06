@@ -3,9 +3,9 @@
 #pragma once
 
 #include "GTimer.h"
-#include "etl_led.h"
-#include "etl_vector.h"
-#include "etl_memory.h"
+#include "etl/etl_led.h"
+#include "etl/etl_vector.h"
+#include "etl/etl_memory.h"
 
 class MorseCode
 {

@@ -3,19 +3,19 @@
 // Вся конфигурация и платформозависимые настройки в pinout.h
 #include "pinout.h"
 //////////////////////////////////////////////////////////
-#include "etl_memory.h"
+#include "etl/etl_memory.h"
 #include <GTimer.h>
 
-#include "etl_led.h"
+#include "etl/etl_led.h"
 etl::shared_ptr<etl::led> blinkLED = etl::make_shared<etl::led>(LED_MORSE, false, INVERSE_BUILTING_LED);
-etl::shared_ptr<etl::led> fadeLED = etl::make_shared<etl::led>(LED_FADE, false);
+etl::shared_ptr<etl::led> fadeLED;// = etl::make_shared<etl::led>(LED_FADE, false);
 
 #include "morse_espnow.h"
 morse_relay_mgr morse_relay(true); // Передатчик данных по ESPNOW
 
 #include "morse.h"
 const uint32_t MORSE_DIT = 50;  // длительность единичного интервала (dit), для новичков 50-150 мс.
-etl::unique_ptr<MorseCode> morse; // = etl::make_unique<MorseCode>(blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
+etl::unique_ptr<MorseCode> morse = etl::make_unique<MorseCode>(blinkLED, MORSE_DIT); // светодиод и длительность единичного интервала (dit)
 
 #ifdef MORSE_CLIENT
 etl::unique_ptr<MorseCode> morse_client;// = etl::make_unique<MorseCode>(&blinkLED, MORSE_DIT); 
@@ -37,9 +37,9 @@ etl::unique_ptr<GTimer<millis>> time_fade_pause;
 
 /////////////////////////////////////////
 // atl - отладка функционала
-#include "etl_test.h"
+#include "etl/etl_test.h"
 /////////////////////////////////////////
-#include "etl_espwifi.h"
+#include "etl/etl_espwifi.h"
 
 void setup() {
     Serial.begin(115200);
@@ -60,7 +60,7 @@ void setup() {
 
     /////////////////////////////////////////
     // atl - отладка функционала
-    //etl::unittest::test_all(Serial);
+    etl::unittest::test_all(Serial);
     /////////////////////////////////////////
 
     Serial.println("-----------WIFI----------");
@@ -109,30 +109,30 @@ void loop()
     }
 
     // плавное включение и выключение LED, в выключенном положении пауза, чтобы оценить правильность затемнения без мерцания
-    if(time_fade_pause && time_fade_pause->tick())
-    {
-      // start new cycle
-      time_fade_pause.reset();
-      fade_direction = true;
-      if(fadeLED) fadeLED->fade_in(FADE_INTERVAL); 
-    }
-    else
-    {
-      if(fadeLED && fadeLED->tick()) // 
-      {
-        fade_direction = !fade_direction;
-        if(fade_direction)
-        {
-          // На новом цикле делаем паузу в выключенном состоянии, чтобы посмотреть, не мигает ли лента
-          time_fade_pause = etl::make_unique<GTimer<millis>>(FADE_PAUSE, true, GTMode::Interval);
-        }
-        else
-        {
-      //  Serial.printf("main: fade %s\n", fade_direction ? "in" : "out");
-          fadeLED->fade_out(FADE_INTERVAL);
-        }
-      }
-    }
+    // if(time_fade_pause && time_fade_pause->tick())
+    // {
+    //   // start new cycle
+    //   time_fade_pause.reset();
+    //   fade_direction = true;
+    //   if(fadeLED) fadeLED->fade_in(FADE_INTERVAL); 
+    // }
+    // else
+    // {
+    //   if(fadeLED && fadeLED->tick()) // 
+    //   {
+    //     fade_direction = !fade_direction;
+    //     if(fade_direction)
+    //     {
+    //       // На новом цикле делаем паузу в выключенном состоянии, чтобы посмотреть, не мигает ли лента
+    //       time_fade_pause = etl::make_unique<GTimer<millis>>(FADE_PAUSE, true, GTMode::Interval);
+    //     }
+    //     else
+    //     {
+    //   //  Serial.printf("main: fade %s\n", fade_direction ? "in" : "out");
+    //       fadeLED->fade_out(FADE_INTERVAL);
+    //     }
+    //   }
+    // }
 
     ///////////////////////////////////////////////////
     // Проверка коммуникации esp-now

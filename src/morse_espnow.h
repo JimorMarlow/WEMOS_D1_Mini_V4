@@ -14,8 +14,8 @@
 
 #include "Arduino.h"
 //#include "espnow/esp_manager.h"
-#include "etl_espnow.h"
-#include "etl_led.h"
+#include "etl/etl_espnow.h"
+#include "etl/etl_led.h"
 
 // Мои модули для отладки
 namespace esp_board {

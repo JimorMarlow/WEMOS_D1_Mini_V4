@@ -117,6 +117,34 @@ Output:
 
 ---
 
+### Локальная отладка ETL в этом проекте
+
+- выбрать гит для работы с последней опубликованной версией "https://github.com/JimorMarlow/etl@^0.9.1"
+- или локальный путь к папке ETL "../etl"
+
+[env]
+framework = arduino
+monitor_speed = 115200
+lib_deps = 
+	gyverlibs/GTimer@^1.1.1
+;	https://github.com/JimorMarlow/etl@^0.9.1       
+	../etl
+
+    Предполагается что этот проект и ETL лежат в одной родительской папке
+    Wemos_D1_Mini_V4/
+    ├── lib/
+    │   └── MyDebugLibrary/     
+    ├── src/
+    │   └── main.cpp
+    └── platformio.ini
+    ETL/    <-- локальная библиотека
+    ├── lib/
+    ├── src/
+    │   └── ETL/
+    │   │   └── ...
+    │   └── main.cpp
+    └── platformio.ini
+
 ### serial-plotter extention для показа графиков из серийного порта
 badlogicgames.serial-plotter
 https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter
