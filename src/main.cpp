@@ -45,9 +45,12 @@ void setup() {
     Serial.begin(115200);
     if(SERIAL_INIT_DELAY > 0) delay(SERIAL_INIT_DELAY);  // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
     
-    blinkLED->off();
-    blinkLED->blink(BLINK_DURATION);
-    timer_LED.start(BLINK_INTERVAL, GTMode::Timeout);   // настроить интервал
+    if(blinkLED)
+    {
+      blinkLED->off();
+      blinkLED->blink(BLINK_DURATION);
+      timer_LED.start(BLINK_INTERVAL, GTMode::Timeout);   // настроить интервал
+    }
   
     // morse.debug_trace("123");
     // morse.debug_trace("123 123");
@@ -75,6 +78,28 @@ void setup() {
       fadeLED->init_pwm(FADE_CHANNEL, 30000, 10); // Чтобы не было слышно пищания на низкой частоте - сделать 30КГц и максимально возможное разрешение 10 бит для плавности
       if(fade_direction) fadeLED->fade_in(FADE_INTERVAL); else fadeLED->fade_out(FADE_INTERVAL);
     }
+
+    // Проверка встроенного светодиода
+  #ifdef BOARD_ESP32_WROOM_32U
+    int pin_output_esp32wroom32u[] = {2,3,4, 13, 14,15,16,17,18,19,20,21,22,23,25,26,27,32,33};
+    etl::array pins = pin_output_esp32wroom32u;
+    for(auto pin : pins)
+    {
+      Serial.print("Test Led pin:"); Serial.print(pin);
+      Serial.print(" set OUTPUT mode... ");
+      delay(1000);
+      pinMode(pin, OUTPUT); // Инициализация пина как выход
+      Serial.print(" set HIGH... ");
+      digitalWrite(pin, HIGH);
+      delay(1000);
+      Serial.print(" set LOW... ");
+      digitalWrite(pin, LOW);
+      delay(1000);
+      Serial.println(" OK");
+    }
+
+    blinkLED.reset(); // Пока не работает, нужно разбираться
+  #endif//BOARD_ESP32_WROOM_32U
 }
 
 void loop() 

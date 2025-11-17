@@ -165,6 +165,19 @@ https://marketplace.visualstudio.com/items?itemName=badlogicgames.serial-plotter
         -std=gnu++11
         -Wregister
 
+---
+
+### ESP32-WROOM-32U
+https://myrobot.ru/wiki/index.php?n=Experiences.Esp32Pinout
+
+Добавил конфигурацию, соборал ETL для этой платы, вернулся сюда. Добавил картинки с pinout
+Встроенный светодиод: GPIO2
+
+Для загрузки прошивки нужно устанвоить драйвер: CP2102 драйвер для windows 7-11 / Linux / MacOS
+Скачал тут: https://voltiq.ru/cp2102-driver-windows-7-10/
+
+---
+
 ## TODO
 [+] Перейти на GTimer https://github.com/GyverLibs/GTimer
 [+] Added version badge 

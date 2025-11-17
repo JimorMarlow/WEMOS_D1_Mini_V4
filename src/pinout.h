@@ -31,6 +31,18 @@
 
   const int LED_FADE = 6;  // GPIO6 (MOSI)
   const int FADE_CHANNEL = 0;  
+#elif BOARD_ESP32_WROOM_32U
+  // Код только для ESP32-WROOM-32U
+  #pragma message("Компилируется под ESP32-WROOM-32U")
+  #undef LED_BUILTIN
+  #define LED_BUILTIN 32 // Вообще-то должно быть 2, но при этом уходит в панику ядра
+  
+  bool INVERSE_BUILTING_LED = false;
+  const int LED_MORSE = LED_BUILTIN; //8; //LED_BUILTIN; НЕЛЬЗЯ встроенный, он не совпадает с нашей ESP32 C3 PRO MINI и уводит плату в панику при записи в 30 GPIO, нужно напрямую указать 8
+  const int SERIAL_INIT_DELAY = 1000; // для ESP32 C3 supermini нуждо сделать задержку, чтобы выводилась отладочная информация
+
+  const int LED_FADE = 6;  // GPIO6 (MOSI)
+  const int FADE_CHANNEL = 0;  
 #else
   // Код для других плат
   #pragma message("Компилируется под неизвестную плату. Добавьте BOARD_xxx в platformio.ini для нужной секции [env:xxx]")
