@@ -40,6 +40,7 @@ etl::unique_ptr<GTimer<millis>> time_fade_pause;
 #include "etl/etl_test.h"
 /////////////////////////////////////////
 #include "etl/etl_espwifi.h"
+#include "test_littlefs.h"
 
 void setup() {
     Serial.begin(115200);
@@ -72,6 +73,8 @@ void setup() {
     Serial.print("MODE: ");  Serial.println(MORSE_MODE);
     Serial.print("MAC : ");  Serial.println(etl::espnow::board::get_mac_address());
     Serial.println("-------------------------");
+
+    etl::test::littlefs::start_littlefs();  // Отладка работы с файловой системой
 
     if(fadeLED) {
       Serial.println("fade started...");
