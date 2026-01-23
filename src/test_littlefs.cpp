@@ -66,24 +66,32 @@ bool initLittleFS() {
     bool success = false;
     
     // Способ 1: Без форматирования
-    if (LittleFS.begin(false)) {
+    if (LittleFS.begin(false)) 
+    {
         Serial.println("✓ LittleFS mounted successfully");
         success = true;
-    } else {
+    } 
+    else 
+    {
         Serial.println("✗ LittleFS mount failed, trying with formatting...");
         
         // Способ 2: С форматированием
-        if (LittleFS.begin(true)) {
+        if (LittleFS.begin(true)) 
+        {
             Serial.println("✓ LittleFS mounted after formatting");
             success = true;
-        } else {
+        } 
+        else 
+        {
             Serial.println("✗ All LittleFS mount attempts failed!");
             
             // Способ 3: Форматируем вручную
             Serial.println("Attempting manual format...");
-            if (LittleFS.format()) {
+            if (LittleFS.format()) 
+            {
                 Serial.println("✓ Manual format successful");
-                if (LittleFS.begin(false)) {
+                if (LittleFS.begin(false)) 
+                {
                     Serial.println("✓ LittleFS mounted after manual format");
                     success = true;
                 }
@@ -91,7 +99,8 @@ bool initLittleFS() {
         }
     }
     
-    if (success) {
+    if (success) 
+    {
         // Получаем информацию о файловой системе
         size_t total = LittleFS.totalBytes();
         size_t used = LittleFS.usedBytes();

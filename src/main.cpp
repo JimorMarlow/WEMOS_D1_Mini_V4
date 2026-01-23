@@ -4,6 +4,7 @@
 #include "pinout.h"
 //////////////////////////////////////////////////////////
 #include "etl/etl_memory.h"
+#include "etl/etl_littlefs.h"
 #include <GTimer.h>
 
 #include "etl/etl_led.h"
@@ -74,8 +75,9 @@ void setup() {
     Serial.print("MAC : ");  Serial.println(etl::espnow::board::get_mac_address());
     Serial.println("-------------------------");
 
-    etl::test::littlefs::start_littlefs();  // Отладка работы с файловой системой
-
+    //etl::test::littlefs::start_littlefs();  // Отладка работы с файловой системой
+    etl::little_fs::show_partition_info();
+    
     if(fadeLED) {
       Serial.println("fade started...");
       fadeLED->init_pwm(FADE_CHANNEL, 30000, 10); // Чтобы не было слышно пищания на низкой частоте - сделать 30КГц и максимально возможное разрешение 10 бит для плавности
