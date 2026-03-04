@@ -41,7 +41,6 @@ etl::unique_ptr<GTimer<millis>> time_fade_pause;
 #include "etl/etl_test.h"
 /////////////////////////////////////////
 #include "etl/etl_espwifi.h"
-#include "test_littlefs.h"
 
 void setup() {
     Serial.begin(115200);
