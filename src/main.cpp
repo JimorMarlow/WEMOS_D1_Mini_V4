@@ -63,7 +63,7 @@ void setup() {
     Serial.println("start...");
 
     /////////////////////////////////////////
-    // atl - отладка функционала
+    // etl - отладка функционала
     etl::unittest::test_all(Serial);
     /////////////////////////////////////////
 
@@ -74,8 +74,8 @@ void setup() {
     Serial.print("MAC : ");  Serial.println(etl::espnow::board::get_mac_address());
     Serial.println("-------------------------");
 
-    //etl::test::littlefs::start_littlefs();  // Отладка работы с файловой системой
-    etl::little_fs::show_partition_info();
+    // Отладка работы с файловой системой
+    // etl::little_fs::show_partition_info();
     
     if(fadeLED) {
       Serial.println("fade started...");
