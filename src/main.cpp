@@ -68,9 +68,9 @@ void setup() {
     /////////////////////////////////////////
 
     Serial.println("-----------WIFI----------");
-    Serial.print("SSID: ");  Serial.println(WIFI_SSID);
-    Serial.print("PASS: ");  Serial.println(WIFI_PASS);
-    Serial.print("MODE: ");  Serial.println(MORSE_MODE);
+  //  Serial.print("SSID: ");  Serial.println(WIFI_SSID);
+  //  Serial.print("PASS: ");  Serial.println(WIFI_PASS);
+  //  Serial.print("MODE: ");  Serial.println(MORSE_MODE);
     Serial.print("MAC : ");  Serial.println(etl::espnow::board::get_mac_address());
     Serial.println("-------------------------");
 
