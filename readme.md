@@ -176,6 +176,9 @@ https://myrobot.ru/wiki/index.php?n=Experiences.Esp32Pinout
 Для загрузки прошивки нужно устанвоить драйвер: CP2102 драйвер для windows 7-11 / Linux / MacOS
 Скачал тут: https://voltiq.ru/cp2102-driver-windows-7-10/
 
+UPD: v1.0.2 - эта конфигурация пока не работает, падает в панику при обновлении прошивки. 
+Сначала отлажу работу с littlefs, потом вернусь к этой проблемме
+
 ---
 
 ## TODO
