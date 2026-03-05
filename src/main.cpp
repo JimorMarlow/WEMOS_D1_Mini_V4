@@ -37,8 +37,9 @@ bool fade_direction = true;
 etl::unique_ptr<GTimer<millis>> time_fade_pause;
 
 /////////////////////////////////////////
-// atl - отладка функционала
+// etl - отладка функционала
 #include "etl/etl_test.h"
+#include "etl/etl_settings.h"
 /////////////////////////////////////////
 #include "etl/etl_espwifi.h"
 
@@ -64,6 +65,7 @@ void setup() {
 
     /////////////////////////////////////////
     // etl - отладка функционала
+    //etl::settings::set_trace_mode(etl::settings::trace_mode_t::VERBOSE);
     etl::unittest::test_all(Serial);
     /////////////////////////////////////////
 
